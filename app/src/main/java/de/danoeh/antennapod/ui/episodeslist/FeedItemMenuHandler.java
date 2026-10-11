@@ -26,6 +26,7 @@ import de.danoeh.antennapod.playback.service.PlaybackController;
 import de.danoeh.antennapod.storage.database.DBWriter;
 import de.danoeh.antennapod.ui.common.IntentUtils;
 import de.danoeh.antennapod.playback.service.PlaybackStatus;
+import de.danoeh.antennapod.ui.adskip.AdSkipStatusDialog;
 import de.danoeh.antennapod.ui.share.ShareUtils;
 import de.danoeh.antennapod.ui.share.ShareDialog;
 import de.danoeh.antennapod.model.feed.FeedItem;
@@ -105,6 +106,8 @@ public class FeedItemMenuHandler {
             }
         }
 
+        setItemVisibility(menu, R.id.ad_skip_status, selectedItems.size() == 1
+                && selectedItems.get(0).getMedia() != null);
         setItemVisibility(menu, R.id.skip_episode_item, canSkip);
         setItemVisibility(menu, R.id.remove_from_queue_item, canRemoveFromQueue);
         setItemVisibility(menu, R.id.add_to_queue_item, canAddToQueue);
@@ -183,7 +186,9 @@ public class FeedItemMenuHandler {
                                             @NonNull FeedItem selectedItem) {
 
         @NonNull Context context = fragment.requireContext();
-        if (menuItemId == R.id.skip_episode_item) {
+        if (menuItemId == R.id.ad_skip_status) {
+            AdSkipStatusDialog.show(context, selectedItem.getMedia());
+        } else if (menuItemId == R.id.skip_episode_item) {
             context.sendBroadcast(MediaButtonStarter.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT));
         } else if (menuItemId == R.id.remove_item) {
             LocalDeleteModal.showLocalFeedDeleteWarningIfNecessary(context, Arrays.asList(selectedItem),

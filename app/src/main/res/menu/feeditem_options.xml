@@ -68,4 +68,8 @@
         android:title="@string/open_podcast">
     </item>
 
+    <item
+        android:id="@id/ad_skip_status"
+        android:title="@string/ad_skip_status" />
+
 </menu>

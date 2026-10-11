@@ -27,7 +27,7 @@ public final class AdSkipStatusDialog {
                     : message(record.optString("status"));
             String stage = record.optString("stage", "");
             String text = context.getString(message);
-            if (!stage.trim().isEmpty() && stage.matches("[a-zA-Z0-9_ -]{1,80}")) {
+            if (!stage.trim().isEmpty() && !"null".equals(stage) && stage.matches("[a-zA-Z0-9_ -]{1,80}")) {
                 text = context.getString(R.string.ad_skip_status_stage, text, stage);
             }
             MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context)

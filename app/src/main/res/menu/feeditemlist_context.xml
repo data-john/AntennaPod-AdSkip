@@ -60,4 +60,8 @@
         android:menuCategory="container"
         android:title="@string/multi_select"
         android:visible="false" />
+    <item
+        android:id="@id/ad_skip_status"
+        android:title="@string/ad_skip_status" />
+
 </menu>
