@@ -1065,4 +1065,40 @@
     <string name="wearos_play_on_phone" tools:ignore="UnusedResources">Play on phone</string>
     <string name="wearos_browse_phone" tools:ignore="UnusedResources">Browse phone</string>
     <string name="wearos_open_on_phone" tools:ignore="UnusedResources">Open on phone</string>
+    <string name="ad_skip_title">Ad skipping</string>
+    <string name="ad_skip_enabled">Enable ad analysis</string>
+    <string name="ad_skip_enabled_summary">Upload downloaded queued audio to your configured AudioAdDetect service. Listening remains available while analysis is pending.</string>
+    <string name="ad_skip_origin">AudioAdDetect HTTPS address</string>
+    <string name="ad_skip_invalid_origin">Enter an HTTPS address without credentials, a path, or query parameters.</string>
+    <string name="ad_skip_token">AudioAdDetect bearer token</string>
+    <string name="ad_skip_token_summary">Enter locally. The token is encrypted on this device and excluded from backups.</string>
+    <string name="ad_skip_token_saved">Token saved</string>
+    <string name="ad_skip_automatic">Auto-skip detected ads</string>
+    <string name="ad_skip_local_summary">Skip validated ranges in matching downloaded audio. Streaming and Cast are excluded.</string>
+    <string name="ad_skip_mobile">Allow analysis over mobile data</string>
+    <string name="ad_skip_mobile_summary">Otherwise, wait for an unmetered network. Existing episode-download restrictions still apply.</string>
+    <string name="ad_skip_status">Ad analysis status</string>
+    <string name="ad_skip_manual">Skip ad</string>
+    <string name="ad_skip_cancel_analysis">Cancel analysis</string>
+    <string name="ad_skip_request_saved">Analysis request saved</string>
+    <string name="ad_skip_status_stage">%1$s\nStage: %2$s</string>
+    <string name="ad_skip_waiting">Waiting for configuration, a completed audio download, or allowed connectivity.</string>
+    <string name="ad_skip_uploading">Uploading the downloaded audio file.</string>
+    <string name="ad_skip_queued">Analysis queued on the service.</string>
+    <string name="ad_skip_running">Analysis running on the service.</string>
+    <string name="ad_skip_fetching">Downloading and validating the analysis result.</string>
+    <string name="ad_skip_ready">Detected ad ranges are cached for this audio file.</string>
+    <string name="ad_skip_empty">Analysis completed with no detected ad ranges.</string>
+    <string name="ad_skip_degraded">Degraded fallback result. Validated ranges can be skipped; detection may be incomplete.</string>
+    <string name="ad_skip_unavailable">Service unavailable. A bounded retry is pending; playback remains available.</string>
+    <string name="ad_skip_credentials">Credentials unavailable or rejected. Re-enter the token in playback settings, then retry.</string>
+    <string name="ad_skip_unsupported">Audio exceeds service limits or is unsupported. Playback remains available.</string>
+    <string name="ad_skip_invalid">Analysis record or response is invalid. Ad skipping is unavailable.</string>
+    <string name="ad_skip_failed">Analysis failed or network retries were exhausted. Retry explicitly when the service is ready.</string>
+    <string name="ad_skip_interrupted">Analysis was interrupted on the service. Retry explicitly to resume supported work.</string>
+    <string name="ad_skip_cancelled">Analysis cancelled.</string>
+    <string name="ad_skip_cancelling">Cancellation requested. Waiting for the service to acknowledge it.</string>
+    <string name="ad_skip_expired">The service job has expired. A fresh submission is required.</string>
+    <string name="ad_skip_configuration">Service configuration changed. This job is paused to prevent uploading to a different service.</string>
+    <string name="ad_skip_unverified">Ad skipping unavailable until this downloaded file has been verified.</string>
 </resources>

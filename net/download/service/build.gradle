@@ -25,6 +25,7 @@ dependencies {
     implementation project(':ui:transcript')
 
     annotationProcessor libs.androidx.annotation
+    implementation libs.androidx.preference
     implementation libs.androidx.core
     implementation libs.androidx.documentfile
     implementation libs.androidx.work.runtime

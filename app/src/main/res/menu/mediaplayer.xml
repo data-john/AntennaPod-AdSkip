@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:custom="http://schemas.android.com/apk/res-auto">
 
+    <item android:id="@+id/ad_skip_status" android:title="@string/ad_skip_status"
+        custom:showAsAction="never" />
+    <item android:id="@+id/ad_skip_manual" android:title="@string/ad_skip_manual"
+        android:visible="false" custom:showAsAction="never" />
+
     <item
         android:id="@+id/add_to_favorites_item"
         android:icon="@drawable/ic_star_border"

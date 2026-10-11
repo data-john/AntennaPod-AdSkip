@@ -79,6 +79,9 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
     public static final SessionCommand SESSION_COMMAND_EXTEND_SLEEP_TIMER
             = new SessionCommand("extend_sleep_timer", Bundle.EMPTY);
 
+    public static final SessionCommand SESSION_COMMAND_SKIP_AD
+            = new SessionCommand("skip_ad", Bundle.EMPTY);
+
     private static final String EXTRA_VALUE = "value";
 
     public static Bundle createBundle(boolean value) {
@@ -114,6 +117,7 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
                                                    @NonNull MediaSession.ControllerInfo controller) {
         SessionCommands sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
                 .buildUpon()
+                .add(SESSION_COMMAND_SKIP_AD)
                 .add(SESSION_COMMAND_REWIND)
                 .add(SESSION_COMMAND_FAST_FORWARD)
                 .add(SESSION_COMMAND_PLAYBACK_SPEED)

@@ -1,6 +1,7 @@
 package de.danoeh.antennapod;
 
 import android.content.Context;
+import de.danoeh.antennapod.net.download.service.adskip.AdSkipCoordinator;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import de.danoeh.antennapod.net.download.service.episode.autodownload.AutoDownloadManagerImpl;
@@ -56,5 +57,6 @@ public class ClientConfigurator {
         SleepTimerPreferences.init(context);
         NotificationUtils.createChannels(context);
         initialized = true;
+        AdSkipCoordinator.initialize(context);
     }
 }

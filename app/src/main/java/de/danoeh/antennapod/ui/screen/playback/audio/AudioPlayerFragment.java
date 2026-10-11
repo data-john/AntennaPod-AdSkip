@@ -1,6 +1,5 @@
 package de.danoeh.antennapod.ui.screen.playback.audio;
 
-import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -53,6 +52,10 @@ import java.util.List;
 
 import de.danoeh.antennapod.BuildConfig;
 import de.danoeh.antennapod.R;
+import de.danoeh.antennapod.event.adskip.AdSkipPlaybackEvent;
+import de.danoeh.antennapod.ui.adskip.AdSkipStatusDialog;
+import de.danoeh.antennapod.playback.service.internal.MediaLibrarySessionCallback;
+import android.os.Bundle;
 import de.danoeh.antennapod.activity.MainActivity;
 import de.danoeh.antennapod.ui.common.Converter;
 import de.danoeh.antennapod.ui.screen.feed.preferences.SkipPreferenceDialog;
@@ -518,6 +521,10 @@ public class AudioPlayerFragment extends Fragment implements
         FeedItemMenuHandler.onPrepareMenu(toolbar.getMenu(),
                 Collections.singletonList(currentMedia.getItem()));
         ((CastEnabledActivity) getActivity()).requestCastButton(toolbar.getMenu());
+        AdSkipPlaybackEvent event = EventBus.getDefault().getStickyEvent(AdSkipPlaybackEvent.class);
+        if (event != null) {
+            onAdSkipPlayback(event);
+        }
     }
 
     @Override
@@ -532,6 +539,14 @@ public class AudioPlayerFragment extends Fragment implements
         }
 
         final int itemId = item.getItemId();
+        if (itemId == R.id.ad_skip_status) {
+            AdSkipStatusDialog.show(requireContext(), currentMedia);
+            return true;
+        } else if (itemId == R.id.ad_skip_manual) {
+            PlaybackController.bindToMedia3Service(getContext(), controller ->
+                    controller.sendCustomCommand(MediaLibrarySessionCallback.SESSION_COMMAND_SKIP_AD, Bundle.EMPTY));
+            return true;
+        }
         if (itemId == R.id.disable_sleeptimer_item || itemId == R.id.set_sleeptimer_item) {
             new SleepTimerDialog().show(getChildFragmentManager(), "SleepTimerDialog");
             return true;
@@ -546,6 +561,14 @@ public class AudioPlayerFragment extends Fragment implements
             return true;
         }
         return false;
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onAdSkipPlayback(AdSkipPlaybackEvent event) {
+        if (toolbar != null) {
+            toolbar.getMenu().findItem(R.id.ad_skip_manual).setVisible(currentMedia != null
+                    && event.mediaId == currentMedia.getId() && event.canSkip);
+        }
     }
 
     private void openFeed(Feed feed) {
