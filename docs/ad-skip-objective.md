@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP objective
 
-Date: 11 October 2026. Status: M0/M1 integration evidenced; cancellation-cleanup source `29183e5d3` installed on Samsung; automatic downloads implemented/tested. Full podcast and broader device acceptance remain open. Reviewed against repository head `a1fa49b00`.
+Date: 11 October 2026. Status: M0/M1 integration evidenced; cancellation-cleanup source `29183e5d3` installed on Samsung; automatic downloads implemented/tested. Fresh full-podcast non-empty/manual/automatic/offline checks and owner workflow acceptance passed; broader device acceptance remains open. Reviewed against repository head `a1fa49b00`.
 
 ## Objective
 
