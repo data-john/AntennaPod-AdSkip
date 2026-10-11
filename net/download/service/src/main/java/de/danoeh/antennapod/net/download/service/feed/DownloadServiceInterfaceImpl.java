@@ -18,7 +18,9 @@ import de.danoeh.antennapod.net.download.serviceinterface.DownloadServiceInterfa
 import de.danoeh.antennapod.storage.preferences.UserPreferences;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import org.json.JSONException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -96,7 +98,11 @@ public class DownloadServiceInterfaceImpl extends DownloadServiceInterface {
                 .observeOn(Schedulers.computation())
                 .subscribe(
                     workInfos -> {
-                        new AdSkipStore(context).suppressDownload(media.getId());
+                        try {
+                            new AdSkipStore(context).suppressDownload(media.getId());
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
                         for (WorkInfo info : workInfos) {
                             if (info.getTags().contains(DownloadServiceInterface.WORK_DATA_WAS_QUEUED)) {
                                 DBWriter.removeQueueItem(context, false, media.getItem());
