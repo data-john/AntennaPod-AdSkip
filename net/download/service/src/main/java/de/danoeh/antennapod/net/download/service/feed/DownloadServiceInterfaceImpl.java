@@ -11,6 +11,7 @@ import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import de.danoeh.antennapod.net.download.service.episode.EpisodeDownloadWorker;
 import de.danoeh.antennapod.storage.database.DBWriter;
+import de.danoeh.antennapod.storage.database.adskip.AdSkipStore;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.download.serviceinterface.DownloadServiceInterface;
@@ -37,11 +38,24 @@ public class DownloadServiceInterfaceImpl extends DownloadServiceInterface {
     }
 
     public void download(Context context, FeedItem item) {
+        requestDownload(context, item, true, false);
+    }
+
+    @Override
+    public void download(Context context, FeedItem item, boolean allowMobileData) {
+        requestDownload(context, item, allowMobileData, true);
+    }
+
+    private void requestDownload(Context context, FeedItem item, boolean allowMobileData, boolean adSkip) {
         if (item.isDownloaded()) {
             return;
         }
         OneTimeWorkRequest.Builder workRequest = getRequest(context, item);
-        workRequest.setConstraints(getConstraints());
+        if (adSkip) {
+            workRequest.addTag("adSkipDownload");
+        }
+        workRequest.setConstraints(allowMobileData ? getConstraints()
+                : new Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED).build());
         WorkManager.getInstance(context).enqueueUniqueWork(item.getMedia().getDownloadUrl(),
                 ExistingWorkPolicy.KEEP, workRequest.build());
     }
@@ -82,6 +96,7 @@ public class DownloadServiceInterfaceImpl extends DownloadServiceInterface {
                 .observeOn(Schedulers.computation())
                 .subscribe(
                     workInfos -> {
+                        new AdSkipStore(context).suppressDownload(media.getId());
                         for (WorkInfo info : workInfos) {
                             if (info.getTags().contains(DownloadServiceInterface.WORK_DATA_WAS_QUEUED)) {
                                 DBWriter.removeQueueItem(context, false, media.getItem());

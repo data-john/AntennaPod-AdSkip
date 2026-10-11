@@ -73,6 +73,17 @@ public final class AdSkipStore {
         }
     }
 
+    public JSONObject readForMedia(FeedMedia media, String origin, String configuration)
+            throws IOException, JSONException {
+        try {
+            return read(media.getId());
+        } catch (IOException | JSONException e) {
+            JSONObject record = create(media, origin, configuration).put("status", "INVALID").put("corrupt_record", true);
+            save(record, null);
+            return record;
+        }
+    }
+
     public JSONObject create(FeedMedia media, String origin, String configuration) throws JSONException {
         return new JSONObject().put("version", 1).put("media_id", media.getId())
                 .put("signature", signature(media)).put("origin", origin).put("configuration", configuration)
@@ -134,6 +145,16 @@ public final class AdSkipStore {
     public void delete(long mediaId) {
         synchronized (AdSkipStore.class) {
             file(mediaId).delete();
+        }
+    }
+
+    public void suppressDownload(long mediaId) throws IOException, JSONException {
+        synchronized (AdSkipStore.class) {
+            JSONObject record = read(mediaId);
+            if (record != null && record.optBoolean("download_requested")) {
+                record.put("download_suppressed", true).put("status", "DOWNLOAD_FAILED");
+                save(record, null);
+            }
         }
     }
 

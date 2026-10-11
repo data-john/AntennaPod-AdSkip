@@ -4,6 +4,9 @@ import android.content.Context;
 import android.media.MediaMetadataRetriever;
 import org.robolectric.RuntimeEnvironment;
 import androidx.work.WorkerParameters;
+import androidx.work.Data;
+import androidx.work.WorkInfo;
+import java.util.concurrent.atomic.AtomicReference;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.model.playback.MediaType;
@@ -14,6 +17,7 @@ import de.danoeh.antennapod.storage.database.LongList;
 import de.danoeh.antennapod.storage.database.adskip.AdSkipStore;
 import de.danoeh.antennapod.storage.preferences.AdSkipPreferences;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -185,6 +189,177 @@ public class AdSkipWorkerTest {
         }
     }
 
+    @Test
+    public void deletedAudioRetainsJobUntilCancellationAcknowledged() throws Exception {
+        savedJob("RUNNING");
+        file.delete();
+        when(media.localFileAvailable()).thenReturn(false);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.action("job", "cancel")).thenReturn(job("cancelled")))) {
+            runWorker();
+            Mockito.verify(clients.constructed().get(0)).action("job", "cancel");
+            assertEquals("job", store.read(20).getString("job_id"));
+            assertTrue(store.read(20).getBoolean("local_invalid"));
+            assertFalse(store.read(20).has("result"));
+        }
+    }
+
+    @Test
+    public void statusAndCancellationIgnoreFullAudioMobileRestriction() throws Exception {
+        savedJob("RUNNING");
+        network.when(NetworkUtils::isEpisodeDownloadAllowed).thenReturn(false);
+        network.when(NetworkUtils::isNetworkRestricted).thenReturn(true);
+        store.request(20, true);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.action("job", "cancel")).thenReturn(job("cancelled")))) {
+            runWorker();
+            Mockito.verify(clients.constructed().get(0)).action("job", "cancel");
+        }
+    }
+
+    @Test
+    public void uncertainCancellationRecoversOriginalKeyBeforeCancelling() throws Exception {
+        JSONObject record = store.create(media, "https://example.com", "config");
+        record.put("admission_uncertain", true).put("sha256", AdSkipStore.sha256(file));
+        store.save(record, null);
+        store.request(20, true);
+        database.when(DBReader::getQueue).thenReturn(Collections.emptyList());
+        database.when(DBReader::getQueueIDList).thenReturn(new LongList());
+        String key = record.getString("submission_key");
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.upload(eq(file), anyString(), eq(key)))
+                        .thenReturn(job("queued")))) {
+            runWorker();
+            Mockito.verify(clients.constructed().get(0)).upload(eq(file), anyString(), eq(key));
+            assertTrue(store.read(20).getBoolean("cancel_pending"));
+            assertEquals("job", store.read(20).getString("job_id"));
+        }
+    }
+
+    @Test
+    public void uncertainDeletedUploadIsVisibleAndBlocksNewAdmission() throws Exception {
+        JSONObject record = store.create(media, "https://example.com", "config");
+        record.put("admission_uncertain", true);
+        store.save(record, null);
+        store.request(20, true);
+        file.delete();
+        when(media.localFileAvailable()).thenReturn(false);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class)) {
+            runWorker();
+            assertEquals("RECOVERY", store.read(20).getString("status"));
+            assertTrue(store.read(20).getBoolean("admission_uncertain"));
+            assertTrue(clients.constructed().isEmpty());
+            runWorker();
+            assertTrue(clients.constructed().isEmpty());
+        }
+    }
+
+    @Test
+    public void completedJobValidatesAndCachesResultOnce() throws Exception {
+        savedJob("RUNNING");
+        JSONObject result = new JSONObject().put("schema_version", "promotion-analysis-result-v1")
+                .put("job_id", "job").put("media_sha256", AdSkipStore.sha256(file)).put("duration_ms", 10000)
+                .put("runtime_identity", new JSONObject()).put("provenance_ranges", new JSONArray())
+                .put("source_primary_labels", new JSONArray()).put("ranges", new JSONArray())
+                .put("outcome", "valid_empty");
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> {
+                    when(client.status("job")).thenReturn(job("completed"));
+                    when(client.result("job")).thenReturn(result);
+                })) {
+            runWorker();
+            assertEquals("EMPTY", store.read(20).getString("status"));
+            assertEquals(result.toString(), store.read(20).getJSONObject("result").toString());
+            runWorker();
+            assertEquals(1, clients.constructed().size());
+        }
+    }
+
+    @Test
+    public void lateCompletionForDeletedAudioCannotCacheResult() throws Exception {
+        savedJob("RUNNING");
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.status("job")).thenAnswer(invocation -> {
+                    file.delete();
+                    return job("completed");
+                }))) {
+            runWorker();
+            assertFalse(store.read(20).has("result"));
+            Mockito.verify(clients.constructed().get(0), Mockito.never()).result(anyString());
+        }
+    }
+
+    @Test
+    public void corruptQueuedRecordStopsUntilExplicitRetry() throws Exception {
+        store.save(store.create(media, "https://example.com", "config"), null);
+        Files.write(new File(context.getFilesDir(), "ad-skip/20.json").toPath(), new byte[]{1});
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.upload(any(), anyString(), anyString()))
+                        .thenReturn(job("queued")))) {
+            runWorker();
+            assertEquals("INVALID", store.read(20).getString("status"));
+            assertTrue(clients.constructed().isEmpty());
+            store.request(20, false);
+            runWorker();
+            assertEquals("job", store.read(20).getString("job_id"));
+        }
+    }
+
+    @Test
+    public void stoppedUploadPreservesUncertainAdmissionForRecovery() throws Exception {
+        AtomicReference<AdSkipWorker> running = new AtomicReference<>();
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.upload(any(), anyString(), anyString())).thenAnswer(invocation -> {
+                    running.get().stop(WorkInfo.STOP_REASON_CANCELLED_BY_APP);
+                    throw new IOException("Stopped");
+                }))) {
+            WorkerParameters parameters = Mockito.mock(WorkerParameters.class);
+            when(parameters.getInputData()).thenReturn(Data.EMPTY);
+            running.set(new AdSkipWorker(context, parameters));
+            running.get().doWork();
+            assertTrue(store.read(20).getBoolean("admission_uncertain"));
+            assertFalse(store.read(20).has("job_id"));
+            Mockito.verify(clients.constructed().get(0)).cancel();
+            coordinator.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    public void completedDownloadUsesTheExactNewFileOnce() throws Exception {
+        when(media.localFileAvailable()).thenReturn(false);
+        JSONObject record = store.create(media, "https://example.com", "config");
+        record.put("download_requested", true).put("status", "WAITING_DOWNLOAD");
+        store.save(record, null);
+        when(media.localFileAvailable()).thenReturn(true);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.upload(eq(file), anyString(), anyString()))
+                        .thenReturn(job("queued")))) {
+            runWorker();
+            assertEquals(AdSkipStore.signature(media), store.read(20).getString("signature"));
+            assertEquals(AdSkipStore.sha256(file), store.read(20).getString("sha256"));
+            runWorker();
+            assertEquals(1, clients.constructed().size());
+        }
+    }
+
+    @Test
+    public void uncertainQueueRemovalAutomaticallyRequestsCancellationAndRecovers() throws Exception {
+        JSONObject record = store.create(media, "https://example.com", "config");
+        record.put("admission_uncertain", true).put("sha256", AdSkipStore.sha256(file));
+        store.save(record, null);
+        database.when(DBReader::getQueue).thenReturn(Collections.emptyList());
+        database.when(DBReader::getQueueIDList).thenReturn(new LongList());
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.upload(any(), anyString(), anyString()))
+                        .thenReturn(job("queued")))) {
+            runWorker();
+            assertTrue(store.read(20).getBoolean("cancel_pending"));
+            assertEquals("job", store.read(20).getString("job_id"));
+            Mockito.verify(clients.constructed().get(0)).upload(eq(file), anyString(),
+                    eq(record.getString("submission_key")));
+        }
+    }
+
     private JSONObject savedJob(String status) throws Exception {
         JSONObject record = store.create(media, "https://example.com", "config");
         record.put("sha256", AdSkipStore.sha256(file)).put("duration_ms", 10000)
@@ -198,6 +373,8 @@ public class AdSkipWorkerTest {
     }
 
     private void runWorker() {
-        new AdSkipWorker(context, Mockito.mock(WorkerParameters.class)).doWork();
+        WorkerParameters parameters = Mockito.mock(WorkerParameters.class);
+        when(parameters.getInputData()).thenReturn(Data.EMPTY);
+        new AdSkipWorker(context, parameters).doWork();
     }
 }

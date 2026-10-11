@@ -1082,6 +1082,10 @@
     <string name="ad_skip_cancel_analysis">Cancel analysis</string>
     <string name="ad_skip_request_saved">Analysis request saved</string>
     <string name="ad_skip_status_stage">%1$s\nStage: %2$s</string>
+    <string name="ad_skip_waiting_download">Waiting for the queued audio download to finish.</string>
+    <string name="ad_skip_waiting_network">Waiting for a network permitted for audio downloads and uploads.</string>
+    <string name="ad_skip_download_failed">Audio download stopped or failed. Retry to request it again.</string>
+    <string name="ad_skip_recovery">The upload may have been admitted, but its identity cannot be recovered without the original audio. Other uploads are paused.</string>
     <string name="ad_skip_waiting">Waiting for configuration, a completed audio download, or allowed connectivity.</string>
     <string name="ad_skip_uploading">Uploading the downloaded audio file.</string>
     <string name="ad_skip_queued">Analysis queued on the service.</string>

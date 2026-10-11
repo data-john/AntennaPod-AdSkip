@@ -39,6 +39,10 @@ public abstract class DownloadServiceInterface {
      */
     public abstract void download(Context context, FeedItem item);
 
+    public void download(Context context, FeedItem item, boolean allowMobileData) {
+        download(context, item);
+    }
+
     public abstract void cancel(Context context, FeedMedia media);
 
     public abstract void cancelAll(Context context);

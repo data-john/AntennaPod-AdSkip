@@ -11,7 +11,6 @@ import de.danoeh.antennapod.model.adskip.AdSkipState;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.model.playback.MediaType;
-import de.danoeh.antennapod.net.common.NetworkUtils;
 import de.danoeh.antennapod.net.common.adskip.AdSkipResultParser;
 import de.danoeh.antennapod.net.common.adskip.AudioAdDetectClient;
 import de.danoeh.antennapod.storage.database.DBReader;
@@ -31,9 +30,11 @@ import java.util.UUID;
 
 public class AdSkipWorker extends Worker {
     private volatile AudioAdDetectClient client;
+    private static volatile AudioAdDetectClient uploading;
     private final AdSkipStore store;
     private JSONObject record;
     private FeedMedia media;
+    private boolean downloadsPending;
 
     public AdSkipWorker(@NonNull Context context, @NonNull WorkerParameters parameters) {
         super(context, parameters);
@@ -45,13 +46,19 @@ public class AdSkipWorker extends Worker {
     public Result doWork() {
         long delay = 0;
         try {
+            long[] resume = getInputData().getLongArray("resume_downloads");
+            downloadsPending = AdSkipDownloads.reconcile(getApplicationContext(), store, DBReader.getQueue(),
+                    resume == null ? new long[0] : resume);
             if (!select()) {
+                downloadsPending |= AdSkipDownloads.reconcile(getApplicationContext(), store, DBReader.getQueue(),
+                        new long[0]);
+                if (downloadsPending && !isStopped()) {
+                    AdSkipCoordinator.schedule(getApplicationContext(), true, 60);
+                }
                 return Result.success();
             }
             if (record.optLong("next_attempt") > System.currentTimeMillis()) {
                 delay = (record.getLong("next_attempt") - System.currentTimeMillis() + 999) / 1000;
-            } else if (!NetworkUtils.isEpisodeDownloadAllowed()) {
-                delay = 60;
             } else {
                 delay = advance();
             }
@@ -78,7 +85,7 @@ public class AdSkipWorker extends Worker {
                 EventBus.getDefault().post(new AdSkipEvent(record.optLong("media_id", -1)));
             }
         }
-        if (!isStopped()) {
+        if (!isStopped() && (record != null || downloadsPending)) {
             AdSkipCoordinator.schedule(getApplicationContext(), true, delay);
         }
         return Result.success();
@@ -94,21 +101,38 @@ public class AdSkipWorker extends Worker {
         }
         for (long id : store.mediaIds()) {
             FeedMedia candidate = DBReader.getFeedMedia(id);
-            if (candidate == null || AdSkipStore.signature(candidate).isEmpty()) {
-                store.delete(id);
-                continue;
-            }
             JSONObject saved;
             try {
-                saved = store.read(id);
+                saved = candidate == null ? store.read(id) : store.readForMedia(candidate,
+                        AdSkipPreferences.origin(getApplicationContext()),
+                        AdSkipPreferences.generation(getApplicationContext()));
             } catch (JSONException | IOException e) {
                 continue;
             }
-            if (saved == null || !AdSkipStore.signature(candidate).equals(saved.optString("signature"))) {
+            if (saved == null) {
+                continue;
+            }
+            if (candidate == null && !saved.has("job_id") && !saved.optBoolean("admission_uncertain")) {
                 store.delete(id);
                 continue;
             }
-            if (!saved.has("result") && saved.has("job_id") && !terminal(saved.optString("status"))) {
+            boolean changed = candidate == null || !AdSkipStore.signature(candidate).equals(saved.optString("signature"));
+            if ((changed || saved.optBoolean("local_invalid"))
+                    && Arrays.asList("COMPLETED", "FAILED", "INTERRUPTED", "CANCELLED")
+                    .contains(saved.optString("server_status"))) {
+                store.delete(id);
+                continue;
+            }
+            if (changed && (saved.has("job_id") || saved.optBoolean("admission_uncertain"))) {
+                saved.remove("result");
+                saved.put("local_invalid", true).put("cancel_pending", true);
+                store.save(saved, saved.getString("generation"));
+            } else if (changed && !saved.optString("signature").isEmpty()) {
+                store.delete(id);
+                continue;
+            }
+            if (!saved.has("result") && (saved.has("job_id") || saved.optBoolean("admission_uncertain"))
+                    && !terminal(saved.optString("status"))) {
                 if ((!queued.contains(id) || !AdSkipPreferences.isEnabled(getApplicationContext()))
                         && !saved.optBoolean("cancel_pending")) {
                     store.request(id, true);
@@ -126,8 +150,14 @@ public class AdSkipWorker extends Worker {
             }
         }
         for (long id : store.mediaIds()) {
-            JSONObject saved = store.read(id);
-            if (saved != null && saved.optBoolean("admission_uncertain") && terminal(saved.optString("status"))) {
+            JSONObject saved;
+            try {
+                saved = store.read(id);
+            } catch (IOException | JSONException e) {
+                continue;
+            }
+            if (saved != null && (saved.optBoolean("corrupt_record") || saved.optBoolean("admission_uncertain"))
+                    && terminal(saved.optString("status"))) {
                 return false;
             }
             if (saved != null && saved.has("job_id") && !saved.has("result")
@@ -146,7 +176,8 @@ public class AdSkipWorker extends Worker {
             }
             JSONObject saved;
             try {
-                saved = store.read(candidate.getId());
+                saved = store.readForMedia(candidate, AdSkipPreferences.origin(getApplicationContext()),
+                        AdSkipPreferences.generation(getApplicationContext()));
             } catch (IOException | JSONException e) {
                 continue;
             }
@@ -154,6 +185,15 @@ public class AdSkipWorker extends Worker {
                 saved = store.create(candidate, AdSkipPreferences.origin(getApplicationContext()),
                         AdSkipPreferences.generation(getApplicationContext()));
                 store.save(saved, null);
+            }
+            if (saved.optString("signature").isEmpty() && !saved.has("job_id")
+                    && !saved.optBoolean("admission_uncertain")) {
+                saved.put("signature", AdSkipStore.signature(candidate));
+                if (!terminal(saved.optString("status"))) {
+                    saved.put("status", "WAITING");
+                }
+                saved.put("download_requested", false).put("download_suppressed", false);
+                store.save(saved, saved.getString("generation"));
             }
             if (saved.has("result") || terminal(saved.optString("status"))) {
                 continue;
@@ -167,6 +207,10 @@ public class AdSkipWorker extends Worker {
 
     private long advance() throws IOException, JSONException, GeneralSecurityException {
         Context context = getApplicationContext();
+        if (!record.has("job_id") && !record.optBoolean("admission_uncertain") && !record.has("sha256")) {
+            record.put("origin", AdSkipPreferences.origin(context))
+                    .put("configuration", AdSkipPreferences.generation(context));
+        }
         if (record.optBoolean("retry_pending")
                 && record.getString("origin").equals(AdSkipPreferences.origin(context))) {
             record.put("configuration", AdSkipPreferences.generation(context));
@@ -177,7 +221,17 @@ public class AdSkipWorker extends Worker {
             update(AdSkipState.CONFIGURATION);
             return 0;
         }
-        if (record.optBoolean("cancel_pending") && !record.has("job_id")) {
+        if (record.optBoolean("retry_pending") && record.optBoolean("admission_uncertain")
+                && !record.has("job_id") && media != null && !AdSkipStore.signature(media).isEmpty()
+                && record.optString("sha256").equals(AdSkipStore.sha256(new File(media.getLocalFileUrl())))) {
+            record.put("signature", AdSkipStore.signature(media)).put("local_invalid", false);
+        }
+        if (record.optBoolean("admission_uncertain") && !record.has("job_id") && !current()) {
+            update(AdSkipState.RECOVERY);
+            return 0;
+        }
+        if (record.optBoolean("cancel_pending") && !record.has("job_id")
+                && !record.optBoolean("admission_uncertain")) {
             store.consumeRequest(record, "cancel_pending");
             update(AdSkipState.CANCELLED);
             return 0;
@@ -185,6 +239,10 @@ public class AdSkipWorker extends Worker {
         if (record.optBoolean("retry_pending") && !AdSkipPreferences.isEnabled(context)) {
             store.consumeRequest(record, "retry_pending");
             return 0;
+        }
+        if (!record.has("job_id") && !AdSkipDownloads.allowed(context)) {
+            update(AdSkipState.WAITING_NETWORK);
+            return 60;
         }
         String token;
         try {
@@ -194,7 +252,7 @@ public class AdSkipWorker extends Worker {
         }
         client = new AudioAdDetectClient(record.getString("origin"), token);
         if (record.optBoolean("retry_pending")) {
-            record.put("cancel_sent", false);
+            record.put("corrupt_record", false).put("cancel_sent", false);
             if ("EXPIRED".equals(record.optString("status"))) {
                 record.remove("job_id");
                 record.remove("server_status");
@@ -229,17 +287,28 @@ public class AdSkipWorker extends Worker {
                 return 0;
             }
             if (record.has("sha256") && !hash.equals(record.getString("sha256"))) {
-                store.delete(media.getId());
+                record.put("local_invalid", true);
+                update(AdSkipState.RECOVERY);
                 return 0;
             }
             record.put("sha256", hash).put("duration_ms", duration);
-            if (isStopped() || !AdSkipPreferences.isEnabled(context)
-                    || media.getItem() == null || !DBReader.getQueueIDList().contains(media.getItem().getId())) {
+            if (isStopped() || (!record.optBoolean("admission_uncertain")
+                    && (!AdSkipPreferences.isEnabled(context) || media.getItem() == null
+                    || !DBReader.getQueueIDList().contains(media.getItem().getId())))) {
                 return 0;
             }
             record.put("admission_uncertain", true);
             update(AdSkipState.UPLOADING);
-            accept(client.upload(file, hash, record.getString("submission_key")));
+            uploading = client;
+            try {
+                if (!AdSkipDownloads.allowed(context)) {
+                    update(AdSkipState.WAITING_NETWORK);
+                    return 60;
+                }
+                accept(client.upload(file, hash, record.getString("submission_key")));
+            } finally {
+                uploading = null;
+            }
         } else if (record.optBoolean("cancel_pending") && !record.optBoolean("cancel_sent")) {
             accept(client.action(record.getString("job_id"), "cancel"));
             record.put("cancel_sent", true);
@@ -249,9 +318,16 @@ public class AdSkipWorker extends Worker {
         }
         record.put("network_attempts", 0).put("next_attempt", 0);
         if ("COMPLETED".equals(record.getString("status"))) {
+            if (!current() || record.optBoolean("local_invalid")) {
+                store.consumeRequest(record, "cancel_pending");
+                update(AdSkipState.CANCELLED);
+                return 0;
+            }
             JSONObject result = client.result(record.getString("job_id"));
             String hash = AdSkipStore.sha256(new File(media.getLocalFileUrl()));
             if (!current() || !hash.equals(record.getString("sha256"))) {
+                record.put("local_invalid", true).put("cancel_pending", true);
+                persist();
                 return 0;
             }
             AdSkipResultParser.parse(result, record.getString("job_id"), hash, record.getLong("duration_ms"));
@@ -269,9 +345,11 @@ public class AdSkipWorker extends Worker {
             persist();
             return 0;
         }
-        record.put("next_attempt", System.currentTimeMillis() + 10000);
+        int polls = Math.min(6, record.optInt("polls") + 1);
+        long delay = Math.min(60, polls * 10L);
+        record.put("polls", polls).put("next_attempt", System.currentTimeMillis() + delay * 1000);
         persist();
-        return 10;
+        return delay;
     }
 
     private void accept(JSONObject response) throws JSONException, IOException {
@@ -292,14 +370,16 @@ public class AdSkipWorker extends Worker {
     }
 
     private boolean current() throws JSONException {
-        FeedMedia latest = DBReader.getFeedMedia(media.getId());
+        FeedMedia latest = DBReader.getFeedMedia(record.getLong("media_id"));
         return latest != null && record.getString("signature").equals(AdSkipStore.signature(latest));
     }
 
     private void persist() throws JSONException, IOException {
-        if (current()) {
-            store.save(record, record.getString("generation"));
+        if (!current() && (record.has("job_id") || record.optBoolean("admission_uncertain"))) {
+            record.remove("result");
+            record.put("local_invalid", true).put("cancel_pending", true);
         }
+        store.save(record, record.getString("generation"));
     }
 
     private void update(AdSkipState state) {
@@ -332,7 +412,14 @@ public class AdSkipWorker extends Worker {
 
     private static boolean terminal(String status) {
         return Arrays.asList("READY", "EMPTY", "DEGRADED", "FAILED", "INTERRUPTED", "CANCELLED",
-                "INVALID", "UNSUPPORTED", "EXPIRED", "CREDENTIALS", "CONFIGURATION").contains(status);
+                "INVALID", "UNSUPPORTED", "EXPIRED", "CREDENTIALS", "CONFIGURATION", "RECOVERY").contains(status);
+    }
+
+    static void stopUpload() {
+        AudioAdDetectClient active = uploading;
+        if (active != null) {
+            active.cancel();
+        }
     }
 
     @Override

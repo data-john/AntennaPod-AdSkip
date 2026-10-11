@@ -55,6 +55,10 @@ public final class AdSkipStatusDialog {
     private static int message(String status) {
         try {
             return switch (AdSkipState.valueOf(status)) {
+                case WAITING_DOWNLOAD -> R.string.ad_skip_waiting_download;
+                case WAITING_NETWORK -> R.string.ad_skip_waiting_network;
+                case DOWNLOAD_FAILED -> R.string.ad_skip_download_failed;
+                case RECOVERY -> R.string.ad_skip_recovery;
                 case WAITING -> R.string.ad_skip_waiting;
                 case UPLOADING -> R.string.ad_skip_uploading;
                 case QUEUED -> R.string.ad_skip_queued;
