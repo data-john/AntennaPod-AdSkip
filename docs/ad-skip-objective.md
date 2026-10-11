@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP objective
 
-Date: 11 October 2026. Status: M0/M1 integration evidenced on Samsung at app source `987955223`; automatic downloads implemented/tested. Full podcast and broader device acceptance remain open. Reviewed against repository head `a1fa49b00`.
+Date: 11 October 2026. Status: M0/M1 integration evidenced; cancellation-cleanup source `29183e5d3` installed on Samsung; automatic downloads implemented/tested. Full podcast and broader device acceptance remain open. Reviewed against repository head `a1fa49b00`.
 
 ## Objective
 
@@ -10,13 +10,13 @@ The owner confirmed that adding an episode to the queue should automatically dow
 
 ## Current progress and remaining requirements
 
-The implemented app is installed on Samsung SM-A266B / Android 16 at app source `987955223`. M0/M1 meet their integration exits. The owner has connected Tailscale, saved the token locally and confirmed audible tones and clean controlled skipping. Automatic downloads, network restrictions, suppression, retained-job recovery and cache reuse are implemented. USB/owner absence was an earlier constraint and is no longer the active delivery plan.
+The implemented app is installed on Samsung SM-A266B / Android 16 at app source `29183e5d3`. M0/M1 meet their integration exits. The owner has connected Tailscale, saved the token locally and confirmed audible tones and clean controlled skipping. Automatic downloads, network restrictions, suppression, retained-job recovery and cache reuse are implemented. USB/owner absence was an earlier constraint and is no longer the active delivery plan.
 
-Retained evidence has been reviewed against `a1fa49b00`: the installed recovery APK hash matches the delivery record, and module XML reports total 1,002 executions across variants with zero failures/errors/skips. The last changed-module run contributed 428 executions; the total combines it with retained unchanged-module reports and is not a new all-module run or 1,002 unique tests.
+Retained evidence has been reviewed against `a1fa49b00`: the installed recovery APK hash matches the delivery record, and module XML reports now total 1,018 executions across variants with zero failures/errors/skips. The last changed-module run contributed 444 executions; the total combines it with retained unchanged-module reports and is not a new all-module run or 1,018 unique tests.
 
 | Requirement group | Evidence now | Remaining work |
 | --- | --- | --- |
-| R1: preserve AntennaPod | Release/Debug coexistence, baseline update/data preservation, subscription/download/queue/playback checks and existing module tests. | Focused feature regression checks and cancellation bookkeeping under corrupt analysis metadata. |
+| R1: preserve AntennaPod | Release/Debug coexistence, baseline update/data preservation, subscription/download/queue/playback checks and existing module tests. | Focused feature regression checks and remaining native recovery coverage. Corrupt-metadata cancellation bookkeeping is fixed/tested in `29183e5d3`. |
 | R2/R3: automatic queue/exact-file analysis | Desktop queue/download tests and a native Add to queue → automatic download → exact-file upload → validated result for a fresh owned 14,987 ms recording. | Bulk/keep-sorted and cancellation/network-transition phone checks; one normal full podcast through the same workflow. |
 | R4/R5/R11: configuration, persistence, recovery | Local protected token, authenticated native HTTPS, durable identity/result, offline restart and terminal-cancellation conflict recovery. | Physical network/permission, process-stop, deletion/redownload and explicit retry/cancel matrix. |
 | R6/R7/R8/R10: skip controls and verified offline media | Controlled non-empty ranges passed manual/automatic seeking at 1×/2× and offline restart, with owner audible confirmation. Real API valid-empty result persisted too. | Live full-podcast non-empty ranges, all 14 controlled boundaries, screen-off/Bluetooth, and matching-media invalidation checks. |
