@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP objective
 
-Date: 11 October 2026. Status: core integration implemented and desktop-tested; automatic queue downloads and Samsung acceptance remain pending. Progress reviewed at source commit `872a5af4a`.
+Date: 11 October 2026. Status: M0/M1 integration evidenced on Samsung at app source `987955223`; automatic downloads implemented/tested. Full podcast and broader device acceptance remain open. The progress review below is historical; the latest checkpoint follows at the end.
 
 ## Objective
 
@@ -89,3 +89,10 @@ Backend references are to the sibling checkout on this PC; the endpoint, constra
 ## Interim candidate delivered — 11 October 2026
 
 The independent development outcome is now a compiled/tested candidate with automatic queued-audio downloads, network/cancellation controls, retained remote-job recovery and playback-cache reuse. The candidate validation record reports 990 executions without failures/errors and verified baseline-compatible package/signing identity. A test-only HTTPS fixture harness and phone checklist are prepared. Samsung/native playback, Tailscale, offline/restart, fresh real-episode analysis and owner acceptance remain required for the original device objective; none is inferred from desktop tests.
+
+
+## Samsung integration milestone — 11 October 2026
+
+M0/M1 now have physical-device evidence: baseline/update coexistence, protected local token configuration, authenticated exact-file native upload/poll/result, persistent cache, controlled manual/automatic seeking and offline restart. Adding an undownloaded owned 15-second programme to the queue automatically downloaded and analysed it; a fresh live result was validated as `valid_empty`. The owner confirmed audible generated tones and clean controlled skipping. The cancellation/completion recovery fix at `987955223` passed compilation and 428 download-service test executions; combined retained candidate module evidence totals 1,002 executions without failures/errors. See the [validation record](ad-skip-m0-m1-validation.md#m0m1-device-integration-exit--11-october-2026) and updated [phone checklist](ad-skip-phone-checklist.md).
+
+The full objective remains open: no fresh full podcast with non-empty live ranges has been accepted natively, and Samsung screen-off/Bluetooth, the complete boundary/network/recovery matrix and final owner normal-use acceptance remain outstanding. The short programme result and synthetic cached seek ranges are recorded separately.

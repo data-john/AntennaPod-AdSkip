@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP implementation plan
 
-Date: 11 October 2026. Status: reviewed at `872a5af4a` on `codex/ad-skip-m0-m1`; core integration implemented, M2 automatic downloads incomplete, Samsung acceptance pending.
+Date: 11 October 2026. Status: M0/M1 integration exits evidenced on Samsung at app source `987955223` on `codex/ad-skip-m0-m1`; M2 downloads implemented/tested with a native queue check; full M2/M3 acceptance remains open.
 
 ## Delivery approach
 
@@ -14,10 +14,10 @@ That allowance was the original estimate, not remaining effort: integrated APKs 
 
 | Milestone | Evidence reviewed on 11 October | Status and next gate |
 | --- | --- | --- |
-| M0: baseline | Retained Play debug APK; hash independently matched. JDK/SDK/build-directory workaround documented and still present. | Desktop baseline complete. Samsung installation, model/Android version and smoke checks remain open. |
-| M1: core integration | Exact upload/client/store, settings, worker, Media3 automatic/manual skipping, offline result loader, tests and integrated APK at `1d44f8e28`. | Implementation and desktop checks complete for the recorded scope; native HTTPS/audio/Keystore and phone offline acceptance remain open. |
-| M2: automatic queue/download/recovery | Startup and all queue/item events schedule a worker; admission IDs, explicit retry/cancel, outage recovery and cache identity are implemented. | Partial. `AdSkipWorker.select()` skips media without completed local files; it does not request downloads. Coordinator and real scheduler coverage remain necessary. |
-| M3: real episode and handover | Deterministic 16-second WAV/result fixture and candidate APK prepared. Backend browser evidence exists separately. | Samsung-native real fresh episode, audible skipping, mobile-data/Tailscale and final owner acceptance pending. |
+| M0: baseline | Retained baseline APK; Samsung SM-A266B / Android 16 baseline/update, subscription/download/queue/playback and authenticated Tailscale API checks. | Integration exit met. Release app preserved. |
+| M1: core integration | Fresh native owned-programme upload/poll/result at `987955223`, identity-matched EMPTY result, controlled non-empty manual/automatic seeks, audible owner confirmation and offline restart. | Integration exit met; short programme/control evidence does not establish full real-podcast acceptance. |
+| M2: automatic queue/download/recovery | Automatic missing-audio downloads, network restrictions, suppression/recovery and coordinator coverage implemented/tested. Native Add to queue triggered download and analysis without separate actions. Terminal cancellation conflict fixed/tested. | Broader Samsung network/cancellation/recovery acceptance remains open. |
+| M3: real episode and handover | Installed candidate; Samsung controlled audible seeks/offline restart and fresh short programme valid-empty result passed. | Fresh full-podcast non-empty result/skipping, screen-off/Bluetooth, full boundary/network matrix and final owner normal-use acceptance pending. |
 
 Rechecked retained artifacts: baseline SHA-256 `ea572889756257a6f1fe52e461c8ef71acfc0be435ba9fd7d177c5a6f28837df`; integrated SHA-256 `c04bb264edea4fdfc064f09d587d9d4f746692bef2287a0f5878103aa942ee53`. The five module report directories contain 910 test executions and zero failures/errors. Some worker tests mock `AdSkipCoordinator` and the client; seek tests mock the player and invoke seek decisions directly. They support policy/recovery correctness but do not prove real WorkManager execution, file decoding, audible seeks or UI usability.
 
@@ -312,3 +312,8 @@ The initial planning task changed documents only. Subsequent work implemented an
 The independent A–D delivery produced a compiled/tested candidate at application source `c7b823740`, following queue-download/recovery commit `a87104b4c`. Automatic missing-queue downloads, durable suppression, network-policy controls, retained remote identity and cache reuse are implemented. Retained reports contain 990 executions with zero failures/errors; scheduler coverage includes actual offline WorkManager state, while worker/player coverage remains mocked. Optional emulator work was skipped because the available environment lacks the executable/image/KVM.
 
 See the appended [candidate validation evidence](ad-skip-m0-m1-validation.md#independent-candidate-delivery--11-october-2026) and [phone checklist](ad-skip-phone-checklist.md). The test-only HTTPS feed/API harness is prepared and checked locally; its private certificate-valid phone endpoint still needs deployment during acceptance. SET_QUEUE is treated as an explicit queue replacement that can resume suppressed downloads; ordinary SORTED/MOVED events cannot. The tested candidate fulfills the interim pre-phone outcome. Samsung installation/audio, native transitions and Tailscale, offline/restart, fresh real-episode analysis and owner review remain open; historical M0–M3 exit criteria are unchanged.
+
+
+## Samsung M0/M1 integration delivered — 11 October 2026
+
+The [device exit evidence](ad-skip-m0-m1-validation.md#m0m1-device-integration-exit--11-october-2026) records the installed `987955223` recovery candidate, its retained APK/hash, 428 passing download-service executions and a fresh automatic queue → download → upload → validated API result pipeline. Controlled non-empty seeking and offline/restart passed with owner audible confirmation. M0/M1 are complete for the stated integration scope. Earlier absence/progress sections are historical work queues; they do not override this checkpoint. Full M2 device recovery/network transitions and M3 fresh full-podcast/owner acceptance remain required.
