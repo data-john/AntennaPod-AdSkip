@@ -60,3 +60,17 @@ Run `python3 scripts/ad-skip-fixtures.py` to regenerate the local ignored artifa
 - `result.json` is explicitly controlled fixture data with job ID `controlled-seek-fixture` and runtime identity `fixture: true`. It is not an AudioAdDetect response or detector-quality evidence. Device use must preserve the matching file hash/job association; do not substitute it for evidence of live native upload/admission/result retrieval.
 
 The audible Samsung checks remain pending. No phone state or runtime observation has been inferred from the generated fixture.
+
+## Progress review while USB and owner testing are unavailable
+
+Reviewed on 11 October 2026 at `872a5af4a`; the owner has deferred USB access and owner testing for several hours. This review does not repeat builds/tests or claim native runtime acceptance.
+
+- Both retained APKs exist and their recomputed SHA-256 values match the records above.
+- Retained test XML totals were independently recounted: `:model` 94, `:net:common` 144, `:storage:database` 252, `:playback:service` 80 and `:net:download:service` 340 executions across variants; total 910, zero failures/errors.
+- Temporary JDK `javac`, SDK 36 platform/build tools and the generated build directory are still present. No new toolchain provisioning is necessary while they remain available.
+- Source review confirms that automatic download of missing queued audio is not implemented. Queue events/startup already trigger worker scans; this is partial M2 implementation, not a completed automatic queue workflow.
+- Worker tests mock the coordinator/client, and seek tests use a mocked player. Scheduler, Keystore, real decoding/audio and UI execution need additional runtime evidence.
+- `/dev/kvm` was absent in the review environment; the temporary SDK has no recorded emulator system image. Emulator work is an optional bounded attempt, not a prerequisite for continuing desktop implementation or a Samsung substitute.
+- The generated fixture has no installed-app import/feed/API harness yet. Preparing a test-only delivery route is necessary before calling it a runtime fixture test; its JSON is not a live detector result.
+
+Continue the [work queue without USB or owner review](ad-skip-implementation-plan.md#work-to-complete-without-usb-or-owner-review): finish automatic downloads, reproduce/fix source recovery findings, compile/test and retain a new candidate plus prepared phone checklist. Keep this historical M0/M1 evidence unchanged; append new candidate results only after execution. Samsung installation/native HTTPS, actual automatic/manual audio seeks, offline/restart, a real fresh episode and owner usability remain open.
