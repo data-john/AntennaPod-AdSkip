@@ -47,3 +47,16 @@ Samsung deployment, native authenticated HTTPS/upload, audible automatic/manual 
 4. Queue an already-downloaded audio episode within the API limits (256 MiB, one hour), then use the player’s Ad analysis status action to observe upload/job/result progress. After repairing credentials/connectivity, use Retry to resume the saved job. Changing origin/configuration pauses old work rather than silently uploading to a different service.
 5. Use exact-file non-empty controlled ranges to check manual Skip ad and Auto-skip, including paused/resumed playback, seeking into a range and the episode end. Then disable PC/Tailscale connectivity and force-stop/restart the app to demonstrate cached offline replay.
 6. Record actual device/API/seek/offline observations here before closing M0/M1. Fixture success does not establish real-podcast detector quality or complete M3 acceptance.
+
+
+## Controlled audio fixture
+
+Run `python3 scripts/ad-skip-fixtures.py` to regenerate the local ignored artifacts under `artifacts/ad-skip/m1/fixtures/`. The generator uses only the Python standard library and writes `seek-fixture.wav`, `result.json` and `manifest.json` deterministically.
+
+- Audio: 16 seconds, mono 16-bit PCM at 16 kHz, SHA-256 `4adbac1071b2afd84cd481d10e9afecf3593cbe5785a45c450a55ae99e6a9eed`.
+- The marked intervals use a 1 kHz tone; other audio uses a 400 Hz tone. Expected merged intervals are [0, 1000), [2000, 4000), [8000, 10000) and [14000, 16000) milliseconds. The original ranges intentionally overlap or touch so the fixture exercises normalization while preserving gaps.
+- `manifest.json` records 14 positions and their expected range-end targets, including each start/end boundary and the episode end.
+- Regeneration in a separate temporary directory produced byte-identical artifacts. WAV format/duration, exact SHA-256, required result/range schema fields, normalization and all 14 expected targets were checked successfully.
+- `result.json` is explicitly controlled fixture data with job ID `controlled-seek-fixture` and runtime identity `fixture: true`. It is not an AudioAdDetect response or detector-quality evidence. Device use must preserve the matching file hash/job association; do not substitute it for evidence of live native upload/admission/result retrieval.
+
+The audible Samsung checks remain pending. No phone state or runtime observation has been inferred from the generated fixture.
