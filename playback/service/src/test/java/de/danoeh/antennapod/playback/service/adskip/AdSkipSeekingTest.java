@@ -4,6 +4,9 @@ import androidx.media3.common.DeviceInfo;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import de.danoeh.antennapod.model.adskip.AdSkipRanges;
+import de.danoeh.antennapod.event.adskip.AdSkipEvent;
+import java.io.File;
+import java.nio.file.Files;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.playback.service.Media3PlaybackService;
 import de.danoeh.antennapod.storage.preferences.AdSkipPreferences;
@@ -101,6 +104,30 @@ public class AdSkipSeekingTest {
         preferences.when(() -> AdSkipPreferences.isEnabled(service)).thenReturn(false);
         assertFalse(check(true));
         verify(player, never()).seekTo(2000L);
+    }
+
+    @Test
+    public void unrelatedAndUnchangedEventsDoNotReloadPlaybackCache() throws Exception {
+        File file = File.createTempFile("adskip-cache", ".audio");
+        try (MockedStatic<AdSkipPlayback> loader = Mockito.mockStatic(AdSkipPlayback.class)) {
+            Files.write(file.toPath(), new byte[]{1, 2, 3});
+            FeedMedia media = Mockito.mock(FeedMedia.class);
+            when(media.getId()).thenReturn(5L);
+            when(media.localFileAvailable()).thenReturn(true);
+            when(media.getLocalFileUrl()).thenReturn(file.getAbsolutePath());
+            set("currentPlayable", media);
+            when(player.getCurrentMediaItem()).thenReturn(new MediaItem.Builder()
+                    .setMediaId("5").setUri(file.getAbsolutePath()).build());
+            set("adSkipSignature", file.getAbsolutePath() + ":" + file.length() + ":" + file.lastModified());
+            when(player.isPlaying()).thenReturn(false);
+            service.onAdSkipChanged(new AdSkipEvent(99));
+            service.onAdSkipChanged(new AdSkipEvent(5));
+            service.onAdSkipChanged(new AdSkipEvent(-1));
+            loader.verifyNoInteractions();
+            assertTrue(check(true));
+        } finally {
+            file.delete();
+        }
     }
 
     private void set(String name, Object value) throws Exception {

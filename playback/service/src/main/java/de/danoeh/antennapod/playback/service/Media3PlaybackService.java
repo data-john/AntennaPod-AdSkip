@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.media.audiofx.LoudnessEnhancer;
 import android.os.Bundle;
 import android.os.FileObserver;
+import java.io.File;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -106,6 +107,7 @@ public class Media3PlaybackService extends MediaLibraryService {
     private Disposable adSkipLoader;
     private Disposable adSkipTimer;
     private AdSkipRanges adSkipRanges;
+    private String adSkipSignature;
     private FileObserver adSkipFileObserver;
     private final Handler adSkipHandler = new Handler(Looper.getMainLooper());
     private long adSkipGeneration;
@@ -535,6 +537,7 @@ public class Media3PlaybackService extends MediaLibraryService {
     private void clearAdSkip() {
         adSkipGeneration++;
         adSkipRanges = null;
+        adSkipSignature = null;
         adSkipSeekTarget = -1;
         if (adSkipLoader != null) {
             adSkipLoader.dispose();
@@ -555,8 +558,23 @@ public class Media3PlaybackService extends MediaLibraryService {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAdSkipChanged(AdSkipEvent event) {
         if (currentPlayable != null && (event.mediaId == -1 || event.mediaId == currentPlayable.getId())) {
-            refreshAdSkip();
+            if (adSkipRanges != null && AdSkipPreferences.isEnabled(this)
+                    && adSkipSignature != null && adSkipSignature.equals(adSkipSignature())) {
+                updateAdSkipTimer();
+                checkAdSkip(false);
+            } else {
+                refreshAdSkip();
+            }
         }
+    }
+
+    private String adSkipSignature() {
+        if (currentPlayable == null || !currentPlayable.localFileAvailable()
+                || currentPlayable.getLocalFileUrl() == null) {
+            return "";
+        }
+        File file = new File(currentPlayable.getLocalFileUrl());
+        return file.isFile() ? file.getAbsolutePath() + ":" + file.length() + ":" + file.lastModified() : "";
     }
 
     private void refreshAdSkip() {
@@ -568,6 +586,7 @@ public class Media3PlaybackService extends MediaLibraryService {
         long mediaId = currentPlayable.getId();
         long generation = adSkipGeneration;
         String path = currentPlayable.getLocalFileUrl();
+        String signature = adSkipSignature();
         adSkipFileObserver = new FileObserver(path, FileObserver.MODIFY | FileObserver.CLOSE_WRITE
                 | FileObserver.DELETE_SELF | FileObserver.MOVE_SELF) {
             @Override
@@ -589,6 +608,7 @@ public class Media3PlaybackService extends MediaLibraryService {
                         return;
                     }
                     adSkipRanges = ranges.orElse(null);
+                    adSkipSignature = signature;
                     updateAdSkipTimer();
                     checkAdSkip(false);
                 }, ignored -> clearAdSkip());
