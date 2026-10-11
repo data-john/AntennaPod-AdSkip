@@ -1,27 +1,27 @@
 # AntennaPod AdSkip MVP implementation plan
 
-Date: 11 October 2026. Status: M0/M1 integration exits evidenced on Samsung at app source `987955223` on `codex/ad-skip-m0-m1`; M2 downloads implemented/tested with a native queue check; full M2/M3 acceptance remains open.
+Date: 11 October 2026. Status: MVP development and Samsung deployment complete at app source `c8858a17a` on `codex/ad-skip-m0-m1`. Fresh full-podcast live ranges/manual/automatic/offline playback passed; remaining acceptance checks were accepted by owner assumption.
 
 ## Delivery approach
 
 Finish the existing installed integration through focused fixes and qualification. Keep the Java modules, exact-file identity, private Tailscale transport, normal AntennaPod behaviour and current package/signing identity. No new framework, backend architecture, branding or public deployment is needed.
 
-The original 4–6-day estimate is historical: compilation, candidate installation, core integration and one fresh short native pipeline have already passed. Remaining app work is a targeted recovery fix plus two focused device sessions and a normal-podcast analysis. Backend processing time/failure recovery is the largest uncertainty; do not promise a completion date until one fresh normal episode succeeds. Begin that qualification early and use its processing time for the independent device checks below.
+The remaining cancellation fix and pending-episode recovery UI are delivered. A fresh Coffee House Shots episode completed through automatic queue/download/upload/result and supplied three useful live ranges. Final compilation/installation and APK identity verification passed. The owner is unavailable for further checks and explicitly instructed assuming outstanding checks passed; this changes delivery acceptance, not the record of which tests ran.
 
 ## Progress review against milestones
 
-Reviewed at repository head `a1fa49b00`, with installed app source `987955223`.
+Final app source `c8858a17a`; see the chronological validation record for prior checkpoints.
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
 | M0: baseline | SM-A266B / Android 16 baseline/update; release app preserved; subscription, download, queue, playback and authenticated native Tailscale access. | Complete for the defined integration baseline. |
 | M1: core integration | Fresh owned 14,987 ms programme passed automatic download/upload/poll/validated valid-empty result and offline restart. Controlled non-empty seeks passed at 1×/2× with owner audible confirmation. | Complete for integration; controlled and short results do not establish full podcast operation. |
-| M2: automatic queue/download/recovery | `a87104b4c` downloads/network/suppression/remote identity; `6fff00fdc` cache reuse; `c7b823740` metadata recovery; `987955223` terminal cancellation-conflict result recovery. Desktop coverage and one native queue-triggered download passed. | Implementation delivered; broader Samsung recovery/network matrix remains; the cancellation source-review issue is fixed in `29183e5d3`. |
-| M3: useful real podcast and handover | Recovery APK installed and preserved; checklist and evidence available. | Fresh full-podcast non-empty live result/skipping, screen-off/Bluetooth, complete boundary checks, normal-use acceptance and final handover remain. |
+| M2: automatic queue/download/recovery | `a87104b4c` downloads/network/suppression/remote identity; `6fff00fdc` cache reuse; `c7b823740` metadata recovery; `987955223` terminal cancellation-conflict result recovery. Desktop coverage and one native queue-triggered download passed. | Delivered, including cancellation cleanup and pending-item recovery controls. Bulk/mobile gating and cancellation restart checks measured; remaining matrix accepted by assumption. |
+| M3: useful real podcast and handover | Fresh Coffee live ranges/manual/automatic/offline checks, owner usefulness feedback and final APK installed/retained. | Delivered under owner acceptance assumption; Bluetooth/full boundary and other unexecuted paths remain identified. |
 
 The retained XML reports now total 1,018 executions: model 94, net/common 144, storage/database 252, playback/service 84, download/service 444, with zero failures/errors/skips. This combines the last 444-execution download-service run with retained unchanged-module reports; it is not a new all-module run or a count of unique methods.
 
-Recomputed APK hashes match the records: original candidate `b70ca7a9897142c9d0520f94b6380872fc6e4ec3229231213572a399a901e6b1`; installed recovery APK `e09d12b9884e177b3ef83d8f0a6f424efed8b7de786c1e369bc2e9ddcdad3f35`. The current installed source is `29183e5d3`, with APK/hash and update evidence in the validation record. Use that cancellation-cleanup build for onward work. Full logs and artifacts are listed in the [validation record](ad-skip-m0-m1-validation.md).
+Recomputed APK hashes match the records: original candidate `b70ca7a9897142c9d0520f94b6380872fc6e4ec3229231213572a399a901e6b1`; installed recovery APK `e09d12b9884e177b3ef83d8f0a6f424efed8b7de786c1e369bc2e9ddcdad3f35`. The final installed source is `c8858a17a`, with APK SHA-256 `5cba9a24eae39291491d9d09a5b2ea3adf8c83b62e0867b0a63ef5c579c1dc79` and matching-signature update evidence in the validation record. Use the final artifact linked in the phone handover. Full logs and artifacts are listed in the [validation record](ad-skip-m0-m1-validation.md).
 
 ### Review of changes since the previous plan
 
@@ -32,6 +32,8 @@ The focused source issue was reproduced and fixed in `29183e5d3`: `DownloadServi
 Remaining native risks include metered permission changes during transfer, process/network loss around admission, deletion while a job runs, invalid-record recovery and unrelated-event cache reuse. Some tests mock client/player/DB behaviour, so desktop success does not close those runtime checks. Unresolved admission/corrupt metadata can deliberately block new admissions to avoid repeated inference; the phone must display and support that recovery path clearly.
 
 ## Remaining MVP work
+
+Delivery disposition: step 1 is reproduced/fixed/tested; step 2 passed fresh live/manual/automatic/offline playback; steps 3–4 have the measured subset recorded in validation, with all outstanding checks accepted by owner assumption; step 5 is complete, including final compilation, deployment and handover. Original instructions below remain as the qualification reference. The final UI fix makes status/Retry/Cancel reachable on undownloaded episodes without starting playback.
 
 ### 1 — Protect existing cancellation semantics and retain a patched build (complete)
 
@@ -86,7 +88,7 @@ Exit: the relevant R2/R3/R5/R9/R10/R11 rows have native or appropriate injected-
 2. Ask the owner to use the installed app for a normal listening session with a real result. Obtain final acceptance of queue workflow, visible analysis state, useful skipping and the ability to turn Auto-skip off/replay. The previous yes confirmed tones/controlled skipping only.
 3. Retain the final tested APK/hash/source, signing match, complete build/test logs, device version, actual episode size/duration/result/timings and known limitations. Keep the API token/signing key out of Git and handover notes. Update the [phone checklist](ad-skip-phone-checklist.md) and [validation record](ad-skip-m0-m1-validation.md).
 4. Compile/test/install again only if code has changed since the qualified build. Run `./gradlew checkstyle lint` before opening a PR, following its template/issue conventions; a PR/publication is not needed for this personal sideload.
-5. Mark the MVP complete only when R1–R12 and the real-podcast/non-empty/offline, screen-off/Bluetooth and final owner gates are evidenced. A successful docs commit or existing goal-tracker status is not product acceptance. Keep deferred features out of this final stretch.
+5. Original qualification required all R1–R12/device/owner gates. The owner subsequently accepted outstanding checks by assumption and requested final deployment. Record that acceptance separately from measured passes and retain unexecuted checks as limitations. Keep deferred features out of this final stretch.
 
 ## Original inspected starting point
 
@@ -293,7 +295,7 @@ Before opening any PR, run `./gradlew checkstyle lint`, inspect the repository P
 | Duration reporting/seek adjustment across audio formats | Validate the proposed 1-second duration tolerance and seek-loop guards on actual files. Unsupported identity falls back to normal playback. |
 | Debug package has separate data/signing | Document pilot coexistence and import limitations; preserve pilot identity/key for updates. Full release-data migration and custom branding are deferred. |
 
-Device model/Android version and core native transport are established. A declared real ad-bearing episode, normal-podcast capacity and the remaining device/owner checks are still necessary for delivery. Hosting choice, private Tailscale access and automatic queue downloads have already been decided; do not reopen them.
+Device model/Android version, native transport and fresh selected real-podcast operation are established. Remaining physical acceptance checks were accepted by owner assumption for this delivery. Hosting choice, private Tailscale access and automatic queue downloads have already been decided; do not reopen them.
 
 ## References
 

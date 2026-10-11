@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP objective
 
-Date: 11 October 2026. Status: M0/M1 integration evidenced; cancellation-cleanup source `29183e5d3` installed on Samsung; automatic downloads implemented/tested. Fresh full-podcast non-empty/manual/automatic/offline checks and owner workflow acceptance passed; broader device acceptance remains open. Reviewed against repository head `a1fa49b00`.
+Date: 11 October 2026. Status: MVP delivered on Samsung SM-A266B / Android 16 at app source `c8858a17a`. Fresh full-podcast non-empty/manual/automatic/offline checks and owner workflow acceptance passed. The owner accepted all outstanding checks by assumption and requested final deployment; unexecuted checks remain distinguished from measured evidence.
 
 ## Objective
 
@@ -8,21 +8,21 @@ Deliver a usable Android app on the owner's Samsung phone, based on this Antenna
 
 The owner confirmed that adding an episode to the queue should automatically download it and initiate analysis. The first deployment is a personal sideloaded build using the existing PC service through private Tailscale HTTPS.
 
-## Current progress and remaining requirements
+## Delivered MVP and acceptance record
 
-The implemented app is installed on Samsung SM-A266B / Android 16 at app source `29183e5d3`. M0/M1 meet their integration exits. The owner has connected Tailscale, saved the token locally and confirmed audible tones and clean controlled skipping. Automatic downloads, network restrictions, suppression, retained-job recovery and cache reuse are implemented. USB/owner absence was an earlier constraint and is no longer the active delivery plan.
+The final APK is installed with the existing Debug package/signing identity and preserved pilot configuration/results. Cancellation queue cleanup is fixed in `29183e5d3`; `c8858a17a` exposes analysis status/Retry/Cancel for pending episodes directly from their menus and removes the terminal “Stage: null” display. The final build and installation passed; the installed APK hash matches the retained artifact.
 
-Retained evidence has been reviewed against `a1fa49b00`: the installed recovery APK hash matches the delivery record, and module XML reports now total 1,018 executions across variants with zero failures/errors/skips. The last changed-module run contributed 444 executions; the total combines it with retained unchanged-module reports and is not a new all-module run or 1,018 unique tests.
+Retained module reports total 1,018 executions across variants with zero failures/errors/skips. The last changed-module run contributed 444 executions; the total combines it with retained unchanged-module reports and is not a new all-module run or 1,018 unique tests. The final menu change was compiled and checked on Samsung.
 
-| Requirement group | Evidence now | Remaining work |
+| Requirement group | Measured evidence | Acceptance scope |
 | --- | --- | --- |
-| R1: preserve AntennaPod | Release/Debug coexistence, baseline update/data preservation, subscription/download/queue/playback checks and existing module tests. | Focused feature regression checks and remaining native recovery coverage. Corrupt-metadata cancellation bookkeeping is fixed/tested in `29183e5d3`. |
-| R2/R3: automatic queue/exact-file analysis | Desktop queue/download tests and a native Add to queue → automatic download → exact-file upload → validated result for a fresh owned 14,987 ms recording. | Bulk/keep-sorted and cancellation/network-transition phone checks; one normal full podcast through the same workflow. |
-| R4/R5/R11: configuration, persistence, recovery | Local protected token, authenticated native HTTPS, durable identity/result, offline restart and terminal-cancellation conflict recovery. | Physical network/permission, process-stop, deletion/redownload and explicit retry/cancel matrix. |
-| R6/R7/R8/R10: skip controls and verified offline media | Controlled non-empty ranges passed manual/automatic seeking at 1×/2× and offline restart, with owner audible confirmation. Real API valid-empty result persisted too. | Live full-podcast non-empty ranges, all 14 controlled boundaries, screen-off/Bluetooth, and matching-media invalidation checks. |
-| R9/R12: useful app on Samsung | Installed integration functions on short/control recordings; ordinary listening survived a detector inference failure. | Full-podcast end-to-end success, focused normal-use checks and final owner acceptance. |
+| R1: preserve AntennaPod | Update/data preservation and baseline podcast checks; corrupt-record/I/O cancellation regressions pass. | Remaining normal-use paths accepted by owner assumption. |
+| R2/R3: automatic queue/exact-file analysis | Fresh Coffee House Shots queue → download → upload → result; dedicated bulk queue and mobile-permission combinations. | Complete keep-sorted/transfer interruption matrix not executed. |
+| R4/R5/R11: configuration, persistence, recovery | Authenticated native HTTPS, persisted job/result, pending-item recovery controls, cancellation suppression after sorting/restart. | Remaining deletion/redownload/admission fault paths accepted by assumption. |
+| R6/R7/R8/R10: skip controls and offline media | Controlled 1×/2× skips; owner-confirmed screen-off resume; real manual/automatic skips and offline restart on matching bytes. | Full 14-position boundary and Bluetooth matrix not executed. |
+| R9/R12: useful app on Samsung | Fresh real result with three ranges; owner confirmed useful skips/programme preservation and queue workflow; final APK installed. | Outstanding owner checks waived for this personal MVP delivery. |
 
-Keep three evidence types separate: the fresh short programme returned a live `valid_empty` result; replaying a retained completed job proved result recovery; synthetic tone ranges proved non-empty seek behaviour. None establishes a fresh full-podcast non-empty result. The [implementation plan](ad-skip-implementation-plan.md#remaining-mvp-work) specifies the ordered steps and completion gates.
+Evidence types remain separate: fresh short-recording `valid_empty`, retained-job recovery replay, synthetic seek ranges, and fresh full-podcast `degraded_fallback` with three live ranges. The [phone handover](ad-skip-phone-checklist.md) gives APK identity/settings/use; the [validation record](ad-skip-m0-m1-validation.md) retains measured observations and limits.
 
 ## Required behaviour
 
@@ -64,7 +64,7 @@ Use ordinary HTTPS and the separately installed Tailscale Android client. The pr
 
 The documented admission limits are 256 MiB per recording, one hour duration, four active jobs per owner, two concurrent uploads and one serial analysis worker. These are ceilings, not measured supported capacity. The deployed gateway bounds an upload to 120 seconds. Queue work locally and expose rejected/oversized/slow-upload cases rather than blocking playback.
 
-The backend's documented full podcast attempt failed at an 8 GiB memory ceiling; a checkpoint-assisted retry completed at 16 GiB and returned `degraded_fallback`. Uninterrupted fresh analysis of normal podcasts remains unqualified. A real fresh episode must be demonstrated before declaring the MVP usable for that episode class. Detector accuracy and backend capacity are separate from correct Android integration; the app cannot promise every ad will be detected or that no programme content will ever be included.
+The backend's documented full podcast attempt failed at an 8 GiB memory ceiling; a checkpoint-assisted retry completed at 16 GiB and returned `degraded_fallback`. A subsequent fresh native Coffee House Shots episode (21:49.693, 20,955,329 bytes) completed in 564.933 seconds with three validated degraded ranges and useful skipping confirmed by the owner. This qualifies the selected episode, not every podcast or backend capacity ceiling. Detector accuracy and backend capacity are separate from correct Android integration; the app cannot promise every ad will be detected or that no programme content will ever be included.
 
 ## Deferred work
 
@@ -74,7 +74,7 @@ Public access, Play Store publication, paid hosting, multi-user accounts, detect
 
 The MVP is complete when R1–R12 have recorded evidence, the authorised build compiles, and the owner can use the installed Samsung app to queue an episode and later play its exact downloaded audio with optional automatic skipping. A real fresh API analysis and a result containing ranges must be exercised; a synthetic playback test proves seek behaviour but cannot replace the live pipeline check. Cached skipping must also work offline and after restart. The handover includes the APK, baseline/source revision, installation/update method, settings instructions, tested phone/Android version, measured episode size/duration and known limitations.
 
-The original planning task changed documents only; subsequent implementation has built the APKs and produced the recorded desktop tests above. This progress review changes planning documents only and does not claim a new compilation, test run, live API submission or Samsung installation. M0/M1 physical integration acceptance is complete; full-podcast and broader device acceptance remain open.
+For this delivery, the owner's latest instruction supersedes the remaining physical acceptance gates: “Owner checks no longer available. Assume all outstanding checks passed. Continue development of MVP and deployment of final app to Samsung.” The MVP is delivered under that acceptance assumption. Fresh real non-empty playback/offline use, compilation and installation were actually demonstrated; unavailable Bluetooth and other unexecuted checks are not recorded as measured passes.
 
 ## Sources
 
