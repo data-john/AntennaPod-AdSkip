@@ -1,6 +1,6 @@
 # M0 and M1 delivery record
 
-Date: 11 October 2026. Branch: `codex/ad-skip-m0-m1`.
+Date: 11 October 2026. Branch: `codex/ad-skip-m0-m1`. This is a chronological evidence record: earlier pending statements describe those checkpoints; the latest device exit and progress review below supersede them.
 
 ## M0 baseline
 
@@ -73,7 +73,7 @@ Reviewed on 11 October 2026 at `872a5af4a`; the owner has deferred USB access an
 - `/dev/kvm` was absent in the review environment; the temporary SDK has no recorded emulator system image. Emulator work is an optional bounded attempt, not a prerequisite for continuing desktop implementation or a Samsung substitute.
 - The generated fixture has no installed-app import/feed/API harness yet. Preparing a test-only delivery route is necessary before calling it a runtime fixture test; its JSON is not a live detector result.
 
-Continue the [work queue without USB or owner review](ad-skip-implementation-plan.md#work-to-complete-without-usb-or-owner-review): finish automatic downloads, reproduce/fix source recovery findings, compile/test and retain a new candidate plus prepared phone checklist. Keep this historical M0/M1 evidence unchanged; append new candidate results only after execution. Samsung installation/native HTTPS, actual automatic/manual audio seeks, offline/restart, a real fresh episode and owner usability remain open.
+Continue the [work queue without USB or owner review](ad-skip-implementation-plan.md#remaining-mvp-work): finish automatic downloads, reproduce/fix source recovery findings, compile/test and retain a new candidate plus prepared phone checklist. Keep this historical M0/M1 evidence unchanged; append new candidate results only after execution. Samsung installation/native HTTPS, actual automatic/manual audio seeks, offline/restart, a real fresh episode and owner usability remain open.
 
 ## Independent candidate delivery — 11 October 2026
 
@@ -142,3 +142,16 @@ A separate RSS subscription, **AdSkip owned programme check**, supplied the exis
 With Wi-Fi and mobile data both 0, force-stop/restart retained that exact fresh job/result as EMPTY; both original network settings were restored to 1/1. Native result/progress/restart records are retained under the recovery artifact directory. The earlier controlled non-empty cache tests provide service-side manual/automatic seek and offline audible evidence; the owner confirmed tones and clean skipping. Integration remains enabled with the owner-entered encrypted token; Auto-skip is restored off, mobile analysis off and playback speed 1.00. The programme is left paused. No release-package data or backend service configuration changed.
 
 M0 and M1 now meet their stated integration exit criteria: Samsung baseline/update, authenticated native transport, exact identity, persistent API results, service-side seeking and offline restart. The original tone analysis still has its separately retained inference failure. M2 has implemented/tested queue downloads and one native automatic download, but its broader network/cancellation/recovery matrix remains open. M3/R12 fresh full-podcast non-empty result/skipping, all 14 boundaries, screen-off/Bluetooth, mobile permission transitions and final owner normal-use acceptance remain open. Completion of M0/M1 does not claim the full usable-podcast objective.
+
+
+## MVP progress review at `a1fa49b00` — 11 October 2026
+
+Reviewed the queue/download/coordinator/store/cache changes and terminal-cancellation recovery source against the objective and recorded Samsung evidence. No app code or installed settings changed in this review; no build/test/live API/device run was repeated.
+
+- Recomputed original candidate hash `b70ca7a9897142c9d0520f94b6380872fc6e4ec3229231213572a399a901e6b1` and installed recovery APK hash `e09d12b9884e177b3ef83d8f0a6f424efed8b7de786c1e369bc2e9ddcdad3f35`; both match their retained records. The installed recovery source remains `987955223`; repository head `a1fa49b00` adds documentation only.
+- Recounted current module XML reports: model 94, net/common 144, storage/database 252, playback/service 84 and download/service 428; total 1,002 executions, zero failures/errors/skips. These are retained reports from separate runs/variants, not a new all-module execution or unique test-method count.
+- M0/M1 integration exits remain supported by the recorded native fresh short-programme valid-empty pipeline, controlled audible non-empty seeks and offline restart. Full-podcast capacity/non-empty live results remain unqualified; the failed tone inference, retained-job replay, synthetic ranges and successful fresh programme must stay distinct.
+- M2 functionality and the earlier six source-development findings are addressed, but native network/cancellation/deletion/process-transition coverage remains open. Source review identifies a narrower upstream-preservation follow-up: analysis-store suppression errors in `DownloadServiceInterfaceImpl.cancel()` route to the RxJava fallback, which cancels work but bypasses the existing automatically-queued-item cleanup. Inspecting the installed RxJava `LambdaObserver` bytecode confirmed exception forwarding; download cancellation itself is not lost. Add a focused corrupt-record/I/O test including queue cleanup, then isolate bookkeeping failure if reproduced. This review does not claim the fault was reproduced on Samsung or fixed.
+- The remaining work is now a focused cancellation-regression check/fix, a fresh normal ad-bearing episode, complete boundary/screen-off/Bluetooth and network/recovery checks, normal-use owner acceptance and final artifact handover. The updated planning documents replace the obsolete USB-absence work queue; all original executed evidence above is preserved.
+
+See the [remaining MVP steps](ad-skip-implementation-plan.md#remaining-mvp-work) and [current phone checklist](ad-skip-phone-checklist.md). M3/R12 and full M2 native qualification remain open until executed observations are appended.

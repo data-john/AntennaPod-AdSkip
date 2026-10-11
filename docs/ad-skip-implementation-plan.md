@@ -4,93 +4,89 @@ Date: 11 October 2026. Status: M0/M1 integration exits evidenced on Samsung at a
 
 ## Delivery approach
 
-Implement the [objective](ad-skip-objective.md) as small additions to the existing Java app and modules. Baseline compilation and core integration are already complete on the desktop. Continue queue/download coverage and restart/offline reliability while Samsung access is unavailable, then perform the baseline/update and native episode acceptance on the phone. Keep an installable APK at each milestone. No new backend, framework, large database migration or player replacement is needed for the first build.
+Finish the existing installed integration through focused fixes and qualification. Keep the Java modules, exact-file identity, private Tailscale transport, normal AntennaPod behaviour and current package/signing identity. No new framework, backend architecture, branding or public deployment is needed.
 
-Planning allowance: approximately 4–6 focused development days after build/device access is working and the API accepts the chosen episodes. Aim for the first integrated phone build within 1–2 days of that baseline. These are effort estimates, not calendar commitments; backend full-podcast qualification and local toolchain/device access can extend delivery. Ship the small complete MVP before adding any deferred features.
-
-That allowance was the original estimate, not remaining effort: integrated APKs and desktop tests now exist. Use the several-hour work queue below to prepare the next candidate; physical-device runtime and backend qualification can still uncover work that cannot be estimated from the desktop evidence.
+The original 4–6-day estimate is historical: compilation, candidate installation, core integration and one fresh short native pipeline have already passed. Remaining app work is a targeted recovery fix plus two focused device sessions and a normal-podcast analysis. Backend processing time/failure recovery is the largest uncertainty; do not promise a completion date until one fresh normal episode succeeds. Begin that qualification early and use its processing time for the independent device checks below.
 
 ## Progress review against milestones
 
-| Milestone | Evidence reviewed on 11 October | Status and next gate |
+Reviewed at repository head `a1fa49b00`, with installed app source `987955223`.
+
+| Milestone | Evidence | Status |
 | --- | --- | --- |
-| M0: baseline | Retained baseline APK; Samsung SM-A266B / Android 16 baseline/update, subscription/download/queue/playback and authenticated Tailscale API checks. | Integration exit met. Release app preserved. |
-| M1: core integration | Fresh native owned-programme upload/poll/result at `987955223`, identity-matched EMPTY result, controlled non-empty manual/automatic seeks, audible owner confirmation and offline restart. | Integration exit met; short programme/control evidence does not establish full real-podcast acceptance. |
-| M2: automatic queue/download/recovery | Automatic missing-audio downloads, network restrictions, suppression/recovery and coordinator coverage implemented/tested. Native Add to queue triggered download and analysis without separate actions. Terminal cancellation conflict fixed/tested. | Broader Samsung network/cancellation/recovery acceptance remains open. |
-| M3: real episode and handover | Installed candidate; Samsung controlled audible seeks/offline restart and fresh short programme valid-empty result passed. | Fresh full-podcast non-empty result/skipping, screen-off/Bluetooth, full boundary/network matrix and final owner normal-use acceptance pending. |
+| M0: baseline | SM-A266B / Android 16 baseline/update; release app preserved; subscription, download, queue, playback and authenticated native Tailscale access. | Complete for the defined integration baseline. |
+| M1: core integration | Fresh owned 14,987 ms programme passed automatic download/upload/poll/validated valid-empty result and offline restart. Controlled non-empty seeks passed at 1×/2× with owner audible confirmation. | Complete for integration; controlled and short results do not establish full podcast operation. |
+| M2: automatic queue/download/recovery | `a87104b4c` downloads/network/suppression/remote identity; `6fff00fdc` cache reuse; `c7b823740` metadata recovery; `987955223` terminal cancellation-conflict result recovery. Desktop coverage and one native queue-triggered download passed. | Implementation delivered; broader Samsung recovery/network matrix and one source-review issue remain. |
+| M3: useful real podcast and handover | Recovery APK installed and preserved; checklist and evidence available. | Fresh full-podcast non-empty live result/skipping, screen-off/Bluetooth, complete boundary checks, normal-use acceptance and final handover remain. |
 
-Rechecked retained artifacts: baseline SHA-256 `ea572889756257a6f1fe52e461c8ef71acfc0be435ba9fd7d177c5a6f28837df`; integrated SHA-256 `c04bb264edea4fdfc064f09d587d9d4f746692bef2287a0f5878103aa942ee53`. The five module report directories contain 910 test executions and zero failures/errors. Some worker tests mock `AdSkipCoordinator` and the client; seek tests mock the player and invoke seek decisions directly. They support policy/recovery correctness but do not prove real WorkManager execution, file decoding, audible seeks or UI usability.
+The retained XML reports now total 1,002 executions: model 94, net/common 144, storage/database 252, playback/service 84, download/service 428, with zero failures/errors/skips. This combines the last 428-execution download-service run with retained unchanged-module reports; it is not a new all-module run or a count of unique methods.
 
-See the [delivery record](ad-skip-m0-m1-validation.md) for reproducible paths and original commands. No percentage-complete claim is useful while a core queue requirement and physical acceptance remain open.
+Recomputed APK hashes match the records: original candidate `b70ca7a9897142c9d0520f94b6380872fc6e4ec3229231213572a399a901e6b1`; installed recovery APK `e09d12b9884e177b3ef83d8f0a6f424efed8b7de786c1e369bc2e9ddcdad3f35`. Use the recovery source/APK for onward work, not the superseded original candidate. Full logs and artifacts are listed in the [validation record](ad-skip-m0-m1-validation.md).
 
-### Source findings to resolve before the next candidate
+### Review of changes since the previous plan
 
-1. **Automatic download is missing.** Add the agreed queue-triggered download flow using the existing download interface. Cover startup, bulk additions, keep-sorted queue events and downloaded-item updates; do not rebuild queue management.
-2. **Cancellation identity can be lost on deletion/replacement.** In `AdSkipWorker.select()`, missing media/empty or changed signatures cause `store.delete(id)` before an admitted job can be cancelled. Reproduce this with a focused test; preserve a minimal remote cancellation record while immediately invalidating local skip eligibility. Remote cleanup must not require the deleted file or block episode deletion.
-3. **Network policy changes do not replace existing constraints.** `AdSkipCoordinator.schedule()` appends work on settings changes; an already queued UNMETERED head can still block later CONNECTED work. Test enabling mobile data while waiting and disabling it during work. Reschedule safely without duplicate admissions or violating the stricter policy; verify stop/admission recovery before replacing work.
-4. **Cancel requests are currently subject to upload/download restrictions.** The common worker checks `NetworkUtils.isEpisodeDownloadAllowed()` before all operations, and coordinator constraints cover polling/cancellation too. Give small status/cancel requests a defined connected-network policy independent of permission to send another full audio file, while retaining pending state when offline.
-5. **Playback reloads can be triggered by unrelated events.** Every `FeedItemEvent` posts `AdSkipEvent(-1)`; refresh clears the playback snapshot and rehashes audio. Measure/count loads during another episode's download or frequent queue/item updates, then limit refresh to affected media/configuration. Avoid repeated hashing and avoid unnecessary gaps in cached skipping.
-6. **State/scheduling coverage is incomplete.** Add tests for actual coordinator/WorkManager scheduling, queue changes racing worker completion, corrupt record recovery, stopped workers, cancellation during uncertain admission and one episode waiting/backing off while others enter the queue. These are review targets, not claims of runtime failures already observed on Samsung.
+The previous six development findings have been addressed in source: missing queue files are downloaded with both network permissions; remote identity survives local deletion until reconciliation; control work is CONNECTED; polling/cancel is separate from full-audio permission; processing polls increase from 10 to 60 seconds; targeted events and matching verified caches avoid unrelated rehashes. Download suppression and explicit retry have dedicated tests, and an actual offline WorkManager scheduler is covered. The test-only HTTPS harness lives outside the APK. The later terminal-cancellation conflict fix preserves and validates completed results rather than dropping them as INVALID, and it has three new regression methods plus native retained-result recovery evidence.
 
-Normal successful polling currently schedules every 10 seconds; only network errors back off (and stop after six attempts). The original 10-to-60-second processing-poll proposal is not implemented. Decide and document a bounded processing cadence during M2; keep network outage recovery and explicit inference retry distinct. The status dialog is a snapshot opened by the user, rather than a continuously updating progress display. Treat a small status refresh improvement as secondary to the automatic-download and recovery work.
+One focused source issue remains for follow-up: `DownloadServiceInterfaceImpl.cancel()` calls `AdSkipStore.suppressDownload()` before AntennaPod's existing `WORK_DATA_WAS_QUEUED` cleanup. If the ad-skip row is corrupt or its storage read/write fails, that call throws and the queue cleanup is skipped. RxJava forwards the exception to the supplied error handler, which still cancels the work by tag; cancellation itself is not lost. Isolate optional analysis bookkeeping failures so existing queue cleanup and cancellation always run. Reproduce with a corrupt row and a download tagged as automatically queued, then add a focused regression test before changing code. This is a source-derived finding, not an observed Samsung failure; no app fix was made in this review.
 
-## Work to complete without USB or owner review
+Remaining native risks include metered permission changes during transfer, process/network loss around admission, deletion while a job runs, invalid-record recovery and unrelated-event cache reuse. Some tests mock client/player/DB behaviour, so desktop success does not close those runtime checks. Unresolved admission/corrupt metadata can deliberately block new admissions to avoid repeated inference; the phone must display and support that recovery path clearly.
 
-Proceed within the already agreed scope. USB debugging, owner review and a physical phone are not prerequisites for steps A–D. The order below is a work queue, not a claim these changes have been made.
+## Remaining MVP work
 
-### A — Finish the automatic-download requirement first (target: first 1–2 hours)
+### 1 — Protect existing cancellation semantics and retain a patched build
 
-1. Reuse the current branch, retain the M0/M1 APKs and record source/toolchain evidence. Do not redo baseline compilation setup or USB troubleshooting while the phone is unavailable.
-2. Add reconciliation of queued undownloaded audio through `DownloadServiceInterface.download()`. It already deduplicates downloads by URL and honours AntennaPod download constraints. Run reconciliation off the UI/DB event thread and avoid scheduling requests recursively on the events those downloads generate.
-3. Require both the integration's mobile-data opt-in and AntennaPod's existing permission before initiating automatic work on a metered connection. An integration Wi-Fi default must not silently inherit a less restrictive AntennaPod setting. Persist waiting-for-download/network state without giving a partial file skip eligibility.
-4. Persist download request/cancellation suppression state separately from media-file signature: no completed file exists yet. An explicit user cancellation must not be immediately undone by reconciliation. Allow explicit Retry or a new queue addition to resume it, while ordinary queue sorting/moving does not reset suppression.
-5. On completed-download item events, reread the database/file state and enqueue exact-file analysis once. If an item leaves the queue, stop analysis-only pending work without changing upstream download cancellation semantics.
-6. Add coordinator/reconciliation tests for single/bulk/sorted/startup queue additions, duplicate events, network policy combinations, partial and failed downloads, user cancellation, completion and removal. Verify that Auto-skip off still permits analysis and integration off starts no new download/upload.
+Target: approximately 30–90 minutes if the focused reproduction confirms the source finding.
 
-Deliverable: code and tests for R2/R3, with a clearly visible waiting/download failure state and no need to ask the owner to download manually.
+1. Test ordinary cancellation with no ad-skip row, a corrupt row and a simulated analysis-store I/O failure. Include `WORK_DATA_WAS_QUEUED` so the test checks normal queue removal as well as work cancellation.
+2. If reproduced, make the smallest exception-isolation change in the added analysis bookkeeping, preserving cancellation suppression when storage works. Do not refactor the downloader or repair unrelated warnings.
+3. Compile with `./gradlew :app:assembleDebug`, inspect/retain full output, then run `./gradlew --console=plain :net:download:service:test`. Broaden tests only if other module behaviour changes.
+4. Retain the new APK/hash/source and matching signing identity; install using the mandated install/start command below without uninstalling Debug. Confirm pilot subscriptions, downloaded media, encrypted token and results survive. Append executed evidence, never overwrite original candidate evidence.
 
-### B — Close consequential recovery gaps (target: next 1–2 hours)
+### 2 — Qualify one fresh normal podcast through the native app
 
-1. Reproduce source findings 2–6 with focused tests, then fix only the demonstrated integration gaps. Prioritise preservation of admitted job identity during local deletion, metered-policy rescheduling and small cancellation/status requests.
-2. Drive the worker through admission → repeated polls → completed result using controlled responses; separately lose the admission response and recover with the same key. Check file replacement/removal and late completion at each boundary.
-3. Test cancel during uncertain admission and outage exhaustion without silently creating another analysis. Persist an unresolved remote job until it can be reconciled; expose the reason if explicit recovery is required. A corrupt/unreadable record must not cause an immediate rescheduling loop or permanently hide a queued episode.
-4. Exercise configuration/token generation changes, enabling/disabling integration and Auto-skip, and network preference changes while constrained work already exists. Keep explicit retry semantics for terminal server failures.
-5. Confirm cached offline playback does not need the token, network or server-retention window, and stale results cannot become eligible during reload/episode transitions. Use the deterministic fixture to extend meaningful seek-boundary tests if needed; do not add tests merely duplicating simple resource wiring.
+This is the main completion gate; run early rather than leaving backend discovery until the end.
 
-Deliverable: demonstrated recovery behaviour, focused new tests and a concise list of any remaining runtime uncertainties.
+1. Use one already permitted, declared normal-length episode expected to contain ads, within 256 MiB and one hour. If no permitted episode is already selected, obtain only that missing choice before submitting it. Record feed/episode identity, actual downloaded bytes/hash and duration. Do not conduct a broad detector sweep.
+2. Keep the real HTTPS origin/token locally configured, PC awake and Tailscale connected. Use Wi-Fi first, Auto-skip off and the same raw audio the phone plays. Add the undownloaded episode to the queue; require automatic download and submission without a manual Analyse/Download action.
+3. Record download/upload/queue/processing timings and the native persisted job ID/key/status. A known completed job, deliberate seeded association or retained idempotent replay is useful recovery evidence but must not be labelled fresh full-episode inference.
+4. Let the fresh job reach terminal state and retrieve the actual API result. Require matching file hash, compatible duration, supported schema and bounded millisecond ranges. Record outcome (`valid_ranges`, `degraded_fallback` or `valid_empty`) and provenance; the MVP policy permits validated degraded ranges with visible degraded status.
+5. If it fails, preserve sanitised terminal status/error and original identity. Determine transport/admission, decoder, API worker or inference cause from existing backend evidence. Repair any demonstrated backend issue in AudioAdDetect separately and explicitly retry only where its contract allows. Do not change shared inference, service memory/boot/sleep policy or model behaviour as incidental app work. A failed or interrupted analysis is not a valid empty result.
+6. For a live non-empty result, enable Auto-skip and check actual range entry/end and manual Skip ad against the same recording. Confirm with owner listening that returned sections are useful and note any missed ads/unwanted skips. Do not relabel model provenance as independent accuracy truth or promise perfect detection.
+7. Disconnect networking and restart the app; repeat the live-result skip check with unchanged downloaded bytes. Cache persistence with an empty programme result or synthetic ranges is already evidenced; this step closes actual podcast offline usefulness.
 
-### C — Obtain additional runtime evidence only where feasible (optional, bounded)
+Exit: a fresh native full-podcast result containing usable ranges plus automatic/manual and offline playback evidence. If the selected episode returns valid empty, retain that success but use another already permitted ad-bearing episode to close non-empty acceptance. If capacity/inference still fails, deliver the working integration with the failure documented and keep M3/R12 open.
 
-An emulator can help exercise settings, Keystore, WorkManager, the database, actual decoding and media-session commands without the Samsung. Allocate no more than about 30 minutes to establish a usable emulator before returning to A/B/D. The provisioned `/tmp/antennapod-sdk` has no recorded system image, and `/dev/kvm` was absent in this review's execution environment. This is not proof that the host cannot provide KVM, nor evidence that an emulator is ready. Software-only execution may be slow; consult [official acceleration guidance](https://developer.android.com/studio/run/emulator-acceleration).
+### 3 — Complete the Samsung boundary and background-audio checks
 
-If a usable emulator is available through authorised host execution, compile first and use the repository's mandated install/start command with that emulator as the only selected ADB target. Exercise an isolated controlled feed/audio/API fixture. Prepare a test-only fixture-serving/import route in the test harness if needed: the current generator produces files but does not wire them into an installed app. Do not add a production setting that trusts arbitrary pasted ranges, ship test credentials or relax production HTTPS checks. A harness endpoint must present valid HTTPS to the app's dedicated client.
+Target: a focused 30–60-minute session, using existing controlled media while the real analysis processes.
 
-Record runtime evidence separately from mocked tests. Emulator-to-host networking and any test transport are distinct from Samsung-over-Tailscale access. If no emulator can be established promptly, use existing desktop tests and record runtime checks as pending; do not spend the whole owner-absence window provisioning virtualization.
+1. Preserve and label the controlled fixture cache; verify the exact WAV hash and all 14 positions in its manifest. Check start/end boundaries, touching/overlapping unions, genuine gaps, manual skipping paused/playing, resume and final-range normal queue completion. Never present the synthetic cache as a server prediction.
+2. Check both 1× and 2×, Auto-skip on/off during playback, seek into/past a range, AntennaPod pause rewind and skip-silence/intro/ending interaction. Keep recorded observations separate from millisecond latency guarantees.
+3. Lock/turn off the screen and listen over the phone's speaker/headphones, then a paired Bluetooth device. Check at least two ranges and pause/resume/notification/headset controls in each mode. Bluetooth pairing and audible owner assessment require the actual owner/device; do not infer these from session snapshots.
+4. Confirm normal playback/seek/chapter/sleep-timer and end-of-queue behaviour remains usable. Do not change Samsung battery settings unless a measured failure requires it. Restore agreed user settings after each test.
 
-Review the live backend contract and existing retained exact-media results from already approved fixtures/episodes. A certificate-verified authenticated host request or retained-result replay can check transport/schema without fresh inference. Read credentials only from their protected provisioned location, never through chat or printed command arguments/output. Do not call a fixture result a fresh podcast analysis. Host MagicDNS/network access remains unverified by this review; use the existing documented private transport rather than disabling TLS.
+Exit: R6/R7 background/output behaviour and the remaining controlled boundary matrix recorded on SM-A266B / Android 16.
 
-A fresh backend analysis is useful only for an already permitted, declared sample and an available service, with one serial job and recorded outcome. Do not introduce new podcast permissions, a broad inference sweep, detector changes or service memory/sleep/network configuration changes while the owner is unavailable. Backend-only completion is recorded separately and does not close the native phone requirement. A synthetic tone fixture is sufficient for controlled seek behaviour and is not an ad-detector accuracy sample.
+### 4 — Close the M2 network and recovery matrix on the phone
 
-### D — Produce a ready-to-install candidate (target: final 30–60 minutes, after fixes)
+Target: a focused 45–90-minute session; reuse qualified fixtures or the current known job and avoid unnecessary new inference.
 
-1. Select the existing temporary JDK/SDK environment from the delivery record, confirm the build symlink/toolchain still exist, then run `./gradlew :app:assembleDebug`. Inspect and retain the complete compiler output.
-2. After compilation succeeds, run the relevant module `:test` tasks with `./gradlew --console=plain`. Include `:storage:preferences:test` if token/settings logic changes and the existing five integration modules when their behaviour changes. Do not keep rerunning unchanged suites without a reason.
-3. Retain a new candidate APK alongside M1, its SHA-256, source revision plus any uncommitted diff identification, complete build/test logs and per-module report counts. Verify the candidate package and signing identity against the baseline so an update preserves pilot data. Keep temporary artifacts/secrets out of Git.
-4. Update the delivery record with what was actually executed, outcomes and outstanding runtime checks. Prepare a one-page phone checklist, the known exact-audio fixture/feed access method, configuration instructions, retry/cancel recovery, coexistence with release AntennaPod and rollback notes. No secret belongs in the checklist or APK.
-5. Run `./gradlew checkstyle lint` before opening a PR; no PR is needed merely to hand over this personal candidate. Follow the minimal-diff instructions and leave unrelated warnings/code alone.
+1. With Wi-Fi off and Tailscale on, check full-audio permission combinations: neither, integration only, AntennaPod only, both. Download/upload must wait unless both allow metered transfers; small status/cancel calls can still use connected networking. Restore both mobile permissions off afterward unless the owner selects otherwise.
+2. Change permissions and Wi-Fi/mobile connectivity while a download is queued/running and while upload is active. Confirm stopped/uncertain admission retains its original key; resumed tracking does not create repeated inference. Use the test harness for injected faults where live timing would be destructive or unreliable.
+3. Cancel an automatic download, then sort/move/restart: it stays suppressed. Explicit re-add/queue replacement or Retry can resume it. Test a small bulk/keep-sorted queue and startup reconciliation; ordinary reordering does not upload unchanged episodes again.
+4. Remove/delete/replace a dedicated episode while its job is known. Old ranges stop immediately; remote identity survives until a terminal response, cancellation/completion conflict is reconciled, and local deletion is not blocked by API connectivity. Restore exact original bytes before retrying an uncertain upload when required.
+5. Restart/force-stop around upload admission/polling and completion. Confirm one stored job/result and bounded outage attempts, visible credential/configuration/recovery states and explicit retries for failed/interrupted jobs. Never corrupt the owner's ordinary data to test this; use dedicated test records or desktop tests for corruption/I/O injection.
+6. Disable integration while work is pending, keep ordinary streaming/local playback functional and confirm cached identity still validates when re-enabled. Check settings/status clarity and that token/log/export handling remains private.
 
-If the several-hour window is shorter than this queue, finish A, the highest-impact B findings and the build/tests for the completed changes before optional emulator work or UI polish. Do not ship an uncompiled partial change just to meet the estimate.
+Exit: the relevant R2/R3/R5/R9/R10/R11 rows have native or appropriate injected-test evidence, with any unavailable peripheral path explicitly recorded rather than silently claimed.
 
-### E — Short acceptance session when the owner returns
+### 5 — Finish normal-use acceptance and handover
 
-1. Record Samsung model/Android version, restore an authorised data connection and perform baseline/update installation with the existing command. Preserve the installed release app and pilot data. Diagnose USB separately only if it remains necessary.
-2. If USB is still unavailable, wireless debugging is a possible installation path on supported Android versions, but it requires the owner to enable/pair it and a compatible network; it is not autonomous work during this absence. See [official ADB wireless setup](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi). Once authorised and connected, use the same mandated install/start command. Do not open public ADB access or publish the APK to obtain connectivity.
-3. Enter the token locally. Queue a previously undownloaded permitted episode and watch download → upload → job → validated result. Confirm queueing needs no manual Analyse/download action and ordinary playback works while pending.
-4. Use the prepared exact-file controlled ranges to check manual/automatic seeks and audible boundaries at 1×/2×; test pause/resume, screen-off/Bluetooth and an episode-end range. Label this controlled fixture evidence.
-5. Disconnect networking and restart the app; demonstrate cached skipping. Reconnect with Wi-Fi off/mobile opt-in and Tailscale on; check native API access. Complete a fresh real permitted episode and record its actual result/outcome separately from fixtures or retained-result replay.
-6. Ask for the owner's usability assessment only after an installed, testable candidate exists. Record failures and targeted fixes; close M0–M3 only against their actual physical-device exit criteria.
-
-The achievable pre-phone outcome is a compiled/tested candidate and prepared acceptance session. R12, Samsung-specific scheduling/audio and owner usability remain pending regardless of desktop or emulator success.
+1. Run a focused regression smoke check: subscriptions/feed refresh, queue operations, manual/automatic downloads, streaming, speed/silence/chapters/sleep timer, notification/headset controls, available sync/import/export. Retain module test evidence. Existing Cast/Wear features remain in scope for preservation; test available paths and document any unavailable hardware without claiming remote-byte ad skipping.
+2. Ask the owner to use the installed app for a normal listening session with a real result. Obtain final acceptance of queue workflow, visible analysis state, useful skipping and the ability to turn Auto-skip off/replay. The previous yes confirmed tones/controlled skipping only.
+3. Retain the final tested APK/hash/source, signing match, complete build/test logs, device version, actual episode size/duration/result/timings and known limitations. Keep the API token/signing key out of Git and handover notes. Update the [phone checklist](ad-skip-phone-checklist.md) and [validation record](ad-skip-m0-m1-validation.md).
+4. Compile/test/install again only if code has changed since the qualified build. Run `./gradlew checkstyle lint` before opening a PR, following its template/issue conventions; a PR/publication is not needed for this personal sideload.
+5. Mark the MVP complete only when R1–R12 and the real-podcast/non-empty/offline, screen-off/Bluetooth and final owner gates are evidenced. A successful docs commit or existing goal-tracker status is not product acceptance. Keep deferred features out of this final stretch.
 
 ## Original inspected starting point
 
@@ -202,7 +198,7 @@ Disable detected-ad seeks for streaming or Cast media whose fetched bytes cannot
 
 ## Delivery milestones
 
-### M0 — Build and Samsung baseline (approximately half a day)
+### M0 — Build and Samsung baseline (complete; original scope)
 
 1. Create a feature branch, record upstream revision and inspect any nested instructions before changes.
 2. Select installed Java 21, locate/provision Android SDK 36 and required build tools, and verify wrapper/dependency access without changing application versions.
@@ -211,9 +207,9 @@ Disable detected-ad seeks for streaming or Cast media whose fetched bytes cannot
 5. Install/start using the mandated command below. Smoke check subscribe, download, queue and playback. Preserve the baseline APK and app data/export before later updates; do not uninstall the owner's release app.
 6. Check native HTTPS/token connectivity through the current pilot, without exposing the token or requiring remote diagnostic routes.
 
-Exit: baseline build/install evidence and a reachable authenticated API from the actual device. Desktop build setup is complete; device-dependent checks remain open without preventing M1/M2 implementation and desktop verification.
+Exit: baseline build/install evidence and a reachable authenticated API from the actual device. These baseline/device checks now have evidence in the delivery record; do not redo setup as a prerequisite for the remaining acceptance work.
 
-### M1 — One native end-to-end episode (approximately one day)
+### M1 — One native end-to-end episode (complete for integration; original scope)
 
 1. Add minimal configuration, protected token entry, API transport, persistent job/result store and status UI.
 2. Wire one already-downloaded queued episode through hash → raw upload → admitted job → bounded polling → validated local result.
@@ -223,7 +219,7 @@ Exit: baseline build/install evidence and a reachable authenticated API from the
 
 Exit: first installable integrated build proving native transport, identity, persistent results and service-side seeking. Fixture-only success is an integration milestone, not final real-podcast acceptance.
 
-### M2 — Automatic queue coverage and recovery (approximately one to two days)
+### M2 — Automatic queue coverage and recovery (implemented; device matrix pending)
 
 1. Add coordinator initialization and reconciliation for startup, queue events, bulk/sorted additions and completed-download item events.
 2. Automatically request missing downloads with the agreed Wi-Fi default/mobile opt-in and existing AntennaPod constraints.
@@ -233,7 +229,7 @@ Exit: first installable integrated build proving native transport, identity, per
 
 Exit: the owner's normal queueing workflow needs no separate analysis action, and outages/restarts do not disrupt listening or repeat work unnecessarily.
 
-### M3 — Real episode qualification and release to phone (approximately one to two days)
+### M3 — Real episode qualification and release to phone (pending)
 
 1. Choose a small owner-permitted episode set, within API ceilings, including a real episode expected to return ranges. Avoid a broad detector benchmark.
 2. Run at least one fresh full native pipeline on the current backend; record download/upload/queue/analysis timing, bytes, hash, outcome and resource-related failures. Coordinate any backend repair in its own repository rather than redesigning it in this fork.
@@ -291,13 +287,13 @@ Before opening any PR, run `./gradlew checkstyle lint`, inspect the repository P
 | --- | --- |
 | Fresh ordinary podcast processing is not yet qualified | Validate one permitted real episode early; repair backend capacity separately. Keep acceptance open if it fails. |
 | Upload deadline on slow mobile links | Wi-Fi default, bounded transfer, clear retry/error; measure actual selected sizes. No unplanned resumable-upload backend project. |
-| Samsung battery/background restrictions and Android version | Establish device baseline first; test durable work/screen-off playback. Change device settings only if observed operation requires it. |
-| Java/SDK and restricted ADB environment | Select installed Java 21; locate SDK 36 and establish authorised host/device execution. No build success or device access is assumed. |
+| Samsung background/audio behaviour | SM-A266B / Android 16 baseline is known. Complete screen-off/Bluetooth and native transition checks; change settings only for observed failures. |
+| Temporary build toolchain | Use recorded JDK/SDK 36 and build-directory setup. They are under `/tmp`; reprovision only if removed. USB deployment has passed. |
 | Detector returns incorrect or degraded sections | Display outcome, preserve provenance, support immediate Auto-skip off/manual replay; do not invent accuracy guarantees. |
 | Duration reporting/seek adjustment across audio formats | Validate the proposed 1-second duration tolerance and seek-loop guards on actual files. Unsupported identity falls back to normal playback. |
 | Debug package has separate data/signing | Document pilot coexistence and import limitations; preserve pilot identity/key for updates. Full release-data migration and custom branding are deferred. |
 
-Only device model/Android version, a selected small episode set and actual native capacity/behaviour measurements remain necessary for delivery. Hosting choice, private Tailscale access and automatic queue downloads have already been decided; do not reopen them.
+Device model/Android version and core native transport are established. A declared real ad-bearing episode, normal-podcast capacity and the remaining device/owner checks are still necessary for delivery. Hosting choice, private Tailscale access and automatic queue downloads have already been decided; do not reopen them.
 
 ## References
 
@@ -305,15 +301,4 @@ Only device model/Android version, a selected small episode set and actual nativ
 - [Backend pilot](../../AudioAdDetect/docs/android-private-pilot-plan-2026-10-10.md), [onboarding](../../AudioAdDetect/docs/deployment-private-onboarding-2026-10-10.md), [contract](../../AudioAdDetect/release/consumer-api.md), [OpenAPI](../../AudioAdDetect/release/openapi-v1.json) and [operation envelope](../../AudioAdDetect/docs/deployment-podcast-envelope-a3-v6-2026-10-10.json).
 - [Tailscale Serve](https://tailscale.com/docs/reference/tailscale-cli/serve): private access through the existing tailnet; no public exposure needed.
 
-The initial planning task changed documents only. Subsequent work implemented and built M1, as recorded above. This progress-review task updates documentation only, verifies existing artifact hashes/report totals and inspects source/toolchain availability; it does not rerun compilation/tests, start an emulator, submit a live analysis or install on Samsung. USB and owner testing are temporarily unavailable by the owner's direction, rather than a reason to stop the independent work queue.
-
-## Candidate checkpoint — 11 October 2026
-
-The independent A–D delivery produced a compiled/tested candidate at application source `c7b823740`, following queue-download/recovery commit `a87104b4c`. Automatic missing-queue downloads, durable suppression, network-policy controls, retained remote identity and cache reuse are implemented. Retained reports contain 990 executions with zero failures/errors; scheduler coverage includes actual offline WorkManager state, while worker/player coverage remains mocked. Optional emulator work was skipped because the available environment lacks the executable/image/KVM.
-
-See the appended [candidate validation evidence](ad-skip-m0-m1-validation.md#independent-candidate-delivery--11-october-2026) and [phone checklist](ad-skip-phone-checklist.md). The test-only HTTPS feed/API harness is prepared and checked locally; its private certificate-valid phone endpoint still needs deployment during acceptance. SET_QUEUE is treated as an explicit queue replacement that can resume suppressed downloads; ordinary SORTED/MOVED events cannot. The tested candidate fulfills the interim pre-phone outcome. Samsung installation/audio, native transitions and Tailscale, offline/restart, fresh real-episode analysis and owner review remain open; historical M0–M3 exit criteria are unchanged.
-
-
-## Samsung M0/M1 integration delivered — 11 October 2026
-
-The [device exit evidence](ad-skip-m0-m1-validation.md#m0m1-device-integration-exit--11-october-2026) records the installed `987955223` recovery candidate, its retained APK/hash, 428 passing download-service executions and a fresh automatic queue → download → upload → validated API result pipeline. Controlled non-empty seeking and offline/restart passed with owner audible confirmation. M0/M1 are complete for the stated integration scope. Earlier absence/progress sections are historical work queues; they do not override this checkpoint. Full M2 device recovery/network transitions and M3 fresh full-podcast/owner acceptance remain required.
+This review changes planning documentation only. It checks existing source, artifact hashes and retained report counts; it does not compile/run tests, modify the installed app, submit inference or repeat the recorded Samsung acceptance. Historical candidate and phone checkpoints remain in the append-only delivery record.
