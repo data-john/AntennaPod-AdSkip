@@ -23,7 +23,8 @@ public final class AdSkipStatusDialog {
             JSONObject record = store.read(media.getId());
             return record == null ? new JSONObject().put("status", "WAITING") : record;
         }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(record -> {
-            int message = message(record.optString("status"));
+            int message = record.optBoolean("corrupt_record") ? R.string.ad_skip_corrupt_record
+                    : message(record.optString("status"));
             String stage = record.optString("stage", "");
             String text = context.getString(message);
             if (!stage.trim().isEmpty() && stage.matches("[a-zA-Z0-9_ -]{1,80}")) {

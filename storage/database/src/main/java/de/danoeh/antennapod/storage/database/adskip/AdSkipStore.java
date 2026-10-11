@@ -69,6 +69,12 @@ public final class AdSkipStore {
             if (record.getInt("version") != 1 || record.getLong("media_id") != mediaId) {
                 throw new JSONException("Invalid record");
             }
+            record.getString("signature");
+            for (String key : new String[]{"origin", "configuration", "generation", "submission_key", "status"}) {
+                if (record.getString(key).trim().isEmpty()) {
+                    throw new JSONException("Incomplete record");
+                }
+            }
             return record;
         }
     }

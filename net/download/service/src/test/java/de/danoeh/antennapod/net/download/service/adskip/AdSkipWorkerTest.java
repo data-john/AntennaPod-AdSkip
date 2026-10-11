@@ -360,6 +360,17 @@ public class AdSkipWorkerTest {
         }
     }
 
+    @Test
+    public void incompleteRecordIsRecoverableWithoutAutomaticSubmission() throws Exception {
+        store.save(new JSONObject().put("version", 1).put("media_id", 20), null);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class)) {
+            runWorker();
+            assertEquals("INVALID", store.read(20).getString("status"));
+            assertTrue(store.read(20).getBoolean("corrupt_record"));
+            assertTrue(clients.constructed().isEmpty());
+        }
+    }
+
     private JSONObject savedJob(String status) throws Exception {
         JSONObject record = store.create(media, "https://example.com", "config");
         record.put("sha256", AdSkipStore.sha256(file)).put("duration_ms", 10000)
