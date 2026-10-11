@@ -85,3 +85,7 @@ The original planning task changed documents only; subsequent implementation has
 - [Measured podcast operation envelope](../../AudioAdDetect/docs/deployment-podcast-envelope-a3-v6-2026-10-10.json).
 
 Backend references are to the sibling checkout on this PC; the endpoint, constraints and MVP contract are summarised here so the core objective remains readable without that checkout.
+
+## Interim candidate delivered — 11 October 2026
+
+The independent development outcome is now a compiled/tested candidate with automatic queued-audio downloads, network/cancellation controls, retained remote-job recovery and playback-cache reuse. The candidate validation record reports 990 executions without failures/errors and verified baseline-compatible package/signing identity. A test-only HTTPS fixture harness and phone checklist are prepared. Samsung/native playback, Tailscale, offline/restart, fresh real-episode analysis and owner acceptance remain required for the original device objective; none is inferred from desktop tests.
