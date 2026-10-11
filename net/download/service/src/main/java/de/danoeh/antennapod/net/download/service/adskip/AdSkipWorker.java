@@ -310,9 +310,21 @@ public class AdSkipWorker extends Worker {
                 uploading = null;
             }
         } else if (record.optBoolean("cancel_pending") && !record.optBoolean("cancel_sent")) {
-            accept(client.action(record.getString("job_id"), "cancel"));
+            try {
+                accept(client.action(record.getString("job_id"), "cancel"));
+            } catch (AudioAdDetectClient.ApiException exception) {
+                if (exception.code != 409) {
+                    throw exception;
+                }
+                accept(client.status(record.getString("job_id")));
+                if (!"COMPLETED".equals(record.optString("status")) && !terminal(record.optString("status"))) {
+                    throw exception;
+                }
+            }
             record.put("cancel_sent", true);
-            update(AdSkipState.CANCELLING);
+            if (!"COMPLETED".equals(record.optString("status")) && !terminal(record.optString("status"))) {
+                update(AdSkipState.CANCELLING);
+            }
         } else {
             accept(client.status(record.getString("job_id")));
         }

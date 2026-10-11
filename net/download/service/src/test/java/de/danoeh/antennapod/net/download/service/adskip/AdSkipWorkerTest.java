@@ -276,6 +276,68 @@ public class AdSkipWorkerTest {
     }
 
     @Test
+    public void cancellationConflictRecoversCompletedResult() throws Exception {
+        JSONObject record = savedJob("RUNNING");
+        record.put("cancel_pending", true);
+        store.save(record, null);
+        JSONObject result = new JSONObject().put("schema_version", "promotion-analysis-result-v1")
+                .put("job_id", "job").put("media_sha256", AdSkipStore.sha256(file)).put("duration_ms", 10000)
+                .put("runtime_identity", new JSONObject()).put("provenance_ranges", new JSONArray())
+                .put("source_primary_labels", new JSONArray()).put("ranges", new JSONArray())
+                .put("outcome", "valid_empty");
+        var constructor = AudioAdDetectClient.ApiException.class.getDeclaredConstructor(int.class, long.class);
+        constructor.setAccessible(true);
+        AudioAdDetectClient.ApiException conflict = constructor.newInstance(409, 0L);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> {
+                    when(client.action("job", "cancel")).thenThrow(conflict);
+                    when(client.status("job")).thenReturn(job("completed"));
+                    when(client.result("job")).thenReturn(result);
+                })) {
+            runWorker();
+            assertEquals("EMPTY", store.read(20).getString("status"));
+            assertEquals(result.toString(), store.read(20).getJSONObject("result").toString());
+            assertFalse(store.read(20).optBoolean("cancel_pending"));
+            Mockito.verify(clients.constructed().get(0), Mockito.never()).upload(any(), anyString(), anyString());
+        }
+    }
+
+    @Test
+    public void cancellationConflictForRunningJobRemainsInvalid() throws Exception {
+        JSONObject record = savedJob("RUNNING");
+        record.put("cancel_pending", true);
+        store.save(record, null);
+        var constructor = AudioAdDetectClient.ApiException.class.getDeclaredConstructor(int.class, long.class);
+        constructor.setAccessible(true);
+        AudioAdDetectClient.ApiException conflict = constructor.newInstance(409, 0L);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> {
+                    when(client.action("job", "cancel")).thenThrow(conflict);
+                    when(client.status("job")).thenReturn(job("running"));
+                })) {
+            runWorker();
+            assertEquals("INVALID", store.read(20).getString("status"));
+            assertTrue(store.read(20).optBoolean("cancel_pending"));
+            Mockito.verify(clients.constructed().get(0), Mockito.never()).result(anyString());
+        }
+    }
+
+    @Test
+    public void immediateCancellationKeepsTerminalStatus() throws Exception {
+        JSONObject record = savedJob("RUNNING");
+        record.put("cancel_pending", true);
+        store.save(record, null);
+        try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
+                (client, initialization) -> when(client.action("job", "cancel")).thenReturn(job("cancelled")))) {
+            runWorker();
+            assertEquals("CANCELLED", store.read(20).getString("status"));
+            assertFalse(store.read(20).optBoolean("cancel_pending"));
+            assertEquals(0, store.read(20).optLong("next_attempt"));
+            Mockito.verify(clients.constructed().get(0), Mockito.never()).status(anyString());
+        }
+    }
+
+    @Test
     public void lateCompletionForDeletedAudioCannotCacheResult() throws Exception {
         savedJob("RUNNING");
         try (MockedConstruction<AudioAdDetectClient> clients = Mockito.mockConstruction(AudioAdDetectClient.class,
