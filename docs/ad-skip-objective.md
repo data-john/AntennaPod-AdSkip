@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP objective
 
-Date: 11 October 2026. Status: MVP delivered on Samsung SM-A266B / Android 16 at app source `c8858a17a`. Fresh full-podcast non-empty/manual/automatic/offline checks and owner workflow acceptance passed. The owner accepted all outstanding checks by assumption and requested final deployment; unexecuted checks remain distinguished from measured evidence.
+Date: 12 October 2026. Status: MVP delivered on Samsung SM-A266B / Android 16; latest installed app source is `e375f6158`. Fresh full-podcast non-empty/manual/automatic/offline checks and the 577 consumer playback check passed. The owner accepted all remaining checks by assumption; unexecuted checks remain distinguished from measured evidence.
 
 ## Objective
 
@@ -10,7 +10,7 @@ The owner confirmed that adding an episode to the queue should automatically dow
 
 ## Delivered MVP and acceptance record
 
-The final APK is installed with the existing Debug package/signing identity and preserved pilot configuration/results. Cancellation queue cleanup is fixed in `29183e5d3`; `c8858a17a` exposes analysis status/Retry/Cancel for pending episodes directly from their menus and removes the terminal “Stage: null” display. The final build and installation passed; the installed APK hash matches the retained artifact.
+The final APK is installed with the existing Debug package/signing identity and preserved pilot configuration/results. Cancellation queue cleanup is fixed in `29183e5d3`; `c8858a17a` exposes analysis status/Retry/Cancel for pending episodes directly from their menus and removes the terminal “Stage: null” display. The latest in-place rebuild at `e375f6158` also passed build/install and was independently matched against the installed APK (SHA-256 `913e43fc24e9028b84e8188c4cba6f1067a0eed94001ce650e5c10c255d7092c`). The 577 result hash matched the downloaded media; at 01:30 both the manual action and Auto-skip reached the first range's 04:13.760 end. The Skip ad action is contextual and hidden outside detected ranges.
 
 Retained module reports total 1,018 executions across variants with zero failures/errors/skips. The last changed-module run contributed 444 executions; the total combines it with retained unchanged-module reports and is not a new all-module run or 1,018 unique tests. The final menu change was compiled and checked on Samsung.
 

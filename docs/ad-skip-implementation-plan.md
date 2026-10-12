@@ -1,6 +1,6 @@
 # AntennaPod AdSkip MVP implementation plan
 
-Date: 11 October 2026. Status: MVP development and Samsung deployment complete at app source `c8858a17a` on `codex/ad-skip-m0-m1`. Fresh full-podcast live ranges/manual/automatic/offline playback passed; remaining acceptance checks were accepted by owner assumption.
+Date: 12 October 2026. Status: MVP development and Samsung deployment complete on `codex/ad-skip-m0-m1`; latest installed app source is `e375f6158`. The 577 follow-up verified live manual and automatic skipping against the returned opening range. Remaining acceptance checks were accepted by owner assumption.
 
 ## Delivery approach
 
@@ -10,7 +10,7 @@ The remaining cancellation fix and pending-episode recovery UI are delivered. A 
 
 ## Progress review against milestones
 
-Final app source `c8858a17a`; see the chronological validation record for prior checkpoints.
+The MVP UI change was delivered at `c8858a17a`; the latest installed update was built at `e375f6158`. See the chronological validation record for prior checkpoints.
 
 | Milestone | Evidence | Status |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ Final app source `c8858a17a`; see the chronological validation record for prior 
 
 The retained XML reports now total 1,018 executions: model 94, net/common 144, storage/database 252, playback/service 84, download/service 444, with zero failures/errors/skips. This combines the last 444-execution download-service run with retained unchanged-module reports; it is not a new all-module run or a count of unique methods.
 
-Recomputed APK hashes match the records: original candidate `b70ca7a9897142c9d0520f94b6380872fc6e4ec3229231213572a399a901e6b1`; installed recovery APK `e09d12b9884e177b3ef83d8f0a6f424efed8b7de786c1e369bc2e9ddcdad3f35`. The final installed source is `c8858a17a`, with APK SHA-256 `5cba9a24eae39291491d9d09a5b2ea3adf8c83b62e0867b0a63ef5c579c1dc79` and matching-signature update evidence in the validation record. Use the final artifact linked in the phone handover. Full logs and artifacts are listed in the [validation record](ad-skip-m0-m1-validation.md).
+Recomputed APK hashes match the records: original candidate `b70ca7a9897142c9d0520f94b6380872fc6e4ec3229231213572a399a901e6b1`; installed recovery APK `e09d12b9884e177b3ef83d8f0a6f424efed8b7de786c1e369bc2e9ddcdad3f35`; 11 October handover APK `5cba9a24eae39291491d9d09a5b2ea3adf8c83b62e0867b0a63ef5c579c1dc79`. The latest installed rebuild is source `e375f6158`, APK SHA-256 `913e43fc24e9028b84e8188c4cba6f1067a0eed94001ce650e5c10c255d7092c`, independently matched against the installed base APK. Use the latest artifact linked in the phone handover. Full logs and artifacts are listed in the [validation record](ad-skip-m0-m1-validation.md).
 
 ### Review of changes since the previous plan
 
