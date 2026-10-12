@@ -278,7 +278,7 @@ public class AdSkipWorker extends Worker {
                 retriever.setDataSource(file.getAbsolutePath());
                 duration = Long.parseLong(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
             }
-            if (duration <= 0 || duration > 3600000) {
+            if (duration <= 0 || duration > 7200000) {
                 update(AdSkipState.UNSUPPORTED);
                 return 0;
             }

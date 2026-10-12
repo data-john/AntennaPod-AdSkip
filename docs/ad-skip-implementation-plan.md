@@ -48,7 +48,7 @@ Completed in `29183e5d3`; executed reproduction/build/test/install evidence is a
 
 This is the main completion gate; run early rather than leaving backend discovery until the end.
 
-1. Use one already permitted, declared normal-length episode expected to contain ads, within 256 MiB and one hour. If no permitted episode is already selected, obtain only that missing choice before submitting it. Record feed/episode identity, actual downloaded bytes/hash and duration. Do not conduct a broad detector sweep.
+1. Use one already permitted, declared normal-length episode expected to contain ads, within 256 MiB and the configured service limit of 120 minutes. If no permitted episode is already selected, obtain only that missing choice before submitting it. Record feed/episode identity, actual downloaded bytes/hash and duration. Do not conduct a broad detector sweep.
 2. Keep the real HTTPS origin/token locally configured, PC awake and Tailscale connected. Use Wi-Fi first, Auto-skip off and the same raw audio the phone plays. Add the undownloaded episode to the queue; require automatic download and submission without a manual Analyse/Download action.
 3. Record download/upload/queue/processing timings and the native persisted job ID/key/status. A known completed job, deliberate seeded association or retained idempotent replay is useful recovery evidence but must not be labelled fresh full-episode inference.
 4. Let the fresh job reach terminal state and retrieve the actual API result. Require matching file hash, compatible duration, supported schema and bounded millisecond ranges. Record outcome (`valid_ranges`, `degraded_fallback` or `valid_empty`) and provenance; the MVP policy permits validated degraded ranges with visible degraded status.
