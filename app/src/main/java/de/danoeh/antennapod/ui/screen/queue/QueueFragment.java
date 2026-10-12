@@ -29,6 +29,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import de.danoeh.antennapod.event.MessageEvent;
+import de.danoeh.antennapod.event.adskip.AdSkipEvent;
 import de.danoeh.antennapod.event.playback.SpeedChangedEvent;
 import de.danoeh.antennapod.ui.screen.InboxFragment;
 import de.danoeh.antennapod.ui.screen.SearchFragment;
@@ -39,6 +40,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -68,6 +70,7 @@ import de.danoeh.antennapod.ui.common.EmptyViewHandler;
 import de.danoeh.antennapod.ui.episodeslist.EpisodeItemListRecyclerView;
 import de.danoeh.antennapod.ui.common.LiftOnScrollListener;
 import de.danoeh.antennapod.ui.episodeslist.EpisodeItemViewHolder;
+import de.danoeh.antennapod.ui.adskip.AdSkipQueueStatus;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -97,6 +100,8 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
     private static final String PREF_SHOW_LOCK_WARNING = "show_lock_warning";
 
     private Disposable disposable;
+    private Disposable adSkipStatusDisposable;
+    private int adSkipStatusGeneration;
     private SwipeActions swipeActions;
     private SharedPreferences prefs;
 
@@ -131,6 +136,16 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
         if (disposable != null) {
             disposable.dispose();
         }
+        if (adSkipStatusDisposable != null) {
+            adSkipStatusDisposable.dispose();
+        }
+        adSkipStatusGeneration++;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshAdSkipStatuses();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -178,6 +193,7 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
         recyclerAdapter.updateDragDropEnabled();
         refreshToolbarState();
         refreshInfoBar();
+        refreshAdSkipStatuses();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -204,6 +220,7 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
                 refreshInfoBar();
             }
         }
+        refreshAdSkipStatuses();
         if (event.unreadStatusChanged) {
             refreshToolbarState();
         }
@@ -220,6 +237,12 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
                 recyclerAdapter.notifyItemChangedCompat(pos);
             }
         }
+        refreshAdSkipStatuses();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventMainThread(AdSkipEvent event) {
+        refreshAdSkipStatuses();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -265,6 +288,10 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
         if (recyclerAdapter != null) {
             recyclerAdapter.endSelectMode();
         }
+        if (adSkipStatusDisposable != null) {
+            adSkipStatusDisposable.dispose();
+        }
+        adSkipStatusGeneration++;
         recyclerAdapter = null;
         if (toolbar != null) {
             toolbar.setOnMenuItemClickListener(null);
@@ -549,6 +576,7 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
                     progressBar.setVisibility(View.GONE);
                     recyclerAdapter.setDummyViews(0);
                     recyclerAdapter.updateItems(queue);
+                    refreshAdSkipStatuses();
                     if (restoreScrollPosition) {
                         Pair<Integer, Integer> scrollPosition = new Pair<>(
                                 prefs.getInt(SCROLL_POSITION_KEY, 0), prefs.getInt(SCROLL_OFFSET_KEY, 0));
@@ -556,6 +584,31 @@ public class QueueFragment extends Fragment implements MaterialToolbar.OnMenuIte
                     }
                     refreshInfoBar();
                 }, error -> Log.e(TAG, Log.getStackTraceString(error)));
+    }
+
+    private void refreshAdSkipStatuses() {
+        if (queue == null || recyclerAdapter == null || !isAdded()) {
+            return;
+        }
+        if (adSkipStatusDisposable != null) {
+            adSkipStatusDisposable.dispose();
+        }
+        int generation = ++adSkipStatusGeneration;
+        List<FeedItem> items = new ArrayList<>(queue);
+        Context context = requireContext().getApplicationContext();
+        adSkipStatusDisposable = Observable.fromCallable(() -> AdSkipQueueStatus.load(context, items))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(statuses -> {
+                    if (generation == adSkipStatusGeneration && recyclerAdapter != null && isAdded()) {
+                        recyclerAdapter.setAdSkipStatuses(statuses);
+                    }
+                }, error -> {
+                    Log.e(TAG, Log.getStackTraceString(error));
+                    if (generation == adSkipStatusGeneration && recyclerAdapter != null && isAdded()) {
+                        recyclerAdapter.setAdSkipStatuses(Collections.emptyMap());
+                    }
+                });
     }
 
     @Override

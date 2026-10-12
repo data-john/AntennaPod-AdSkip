@@ -58,6 +58,12 @@ public final class AdSkipSettings {
         category.addPreference(token);
         addSwitch(category, AdSkipPreferences.AUTO_SKIP, R.string.ad_skip_automatic, R.string.ad_skip_local_summary);
         addSwitch(category, AdSkipPreferences.MOBILE_DATA, R.string.ad_skip_mobile, R.string.ad_skip_mobile_summary);
+        SwitchPreferenceCompat queueStatus = new SwitchPreferenceCompat(context);
+        queueStatus.setKey(AdSkipPreferences.SHOW_QUEUE_STATUS);
+        queueStatus.setTitle(R.string.ad_skip_show_queue_status);
+        queueStatus.setSummary(R.string.ad_skip_show_queue_status_summary);
+        queueStatus.setDefaultValue(true);
+        category.addPreference(queueStatus);
     }
 
     private static void addSwitch(PreferenceCategory category, String key, int title, int summary) {

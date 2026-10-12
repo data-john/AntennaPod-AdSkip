@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 
 import de.danoeh.antennapod.R;
@@ -50,6 +51,10 @@ public class EpisodeItemViewHolder extends RecyclerView.ViewHolder {
     private final TextView size;
     public final ImageView isInbox;
     public final ImageView isInQueue;
+    public final View adSkipStatusRow;
+    public final ImageView adSkipStatusIcon;
+    public final TextView adSkipStatusText;
+    public final LinearProgressIndicator adSkipStageProgress;
     private final ImageView isVideo;
     public final ImageView isFavorite;
     private final ProgressBar progressBar;
@@ -77,6 +82,10 @@ public class EpisodeItemViewHolder extends RecyclerView.ViewHolder {
         duration = itemView.findViewById(R.id.txtvDuration);
         progressBar = itemView.findViewById(R.id.progressBar);
         isInQueue = itemView.findViewById(R.id.ivInPlaylist);
+        adSkipStatusRow = itemView.findViewById(R.id.adSkipStatusRow);
+        adSkipStatusIcon = itemView.findViewById(R.id.adSkipStatusIcon);
+        adSkipStatusText = itemView.findViewById(R.id.adSkipStatusText);
+        adSkipStageProgress = itemView.findViewById(R.id.adSkipStageProgress);
         isVideo = itemView.findViewById(R.id.ivIsVideo);
         isInbox = itemView.findViewById(R.id.statusInbox);
         isFavorite = itemView.findViewById(R.id.isFavorite);
@@ -92,6 +101,7 @@ public class EpisodeItemViewHolder extends RecyclerView.ViewHolder {
 
     public void bind(FeedItem item) {
         this.item = item;
+        adSkipStatusRow.setVisibility(View.GONE);
         placeholder.setText(item.getFeed().getTitle());
         title.setText(item.getTitle());
         if (item.isPlayed()) {
@@ -195,6 +205,7 @@ public class EpisodeItemViewHolder extends RecyclerView.ViewHolder {
 
     public void bindDummy() {
         item = new FeedItem();
+        adSkipStatusRow.setVisibility(View.GONE);
         item.setFeed(new Feed("", ""));
         container.setAlpha(0.1f);
         secondaryActionIcon.setImageDrawable(null);

@@ -23,6 +23,7 @@ import java.io.IOException;
 public final class AdSkipPreferences {
     public static final String ENABLED = "adSkipEnabled";
     public static final String AUTO_SKIP = "adSkipAutomatic";
+    public static final String SHOW_QUEUE_STATUS = "adSkipShowQueueStatus";
     public static final String MOBILE_DATA = "adSkipMobileData";
     public static final String ORIGIN = "adSkipOrigin";
     private static final String GENERATION = "adSkipGeneration";
@@ -41,6 +42,10 @@ public final class AdSkipPreferences {
 
     public static boolean autoSkip(Context context) {
         return isEnabled(context) && preferences(context).getBoolean(AUTO_SKIP, false);
+    }
+
+    public static boolean showQueueStatus(Context context) {
+        return preferences(context).getBoolean(SHOW_QUEUE_STATUS, true);
     }
 
     public static boolean mobileData(Context context) {

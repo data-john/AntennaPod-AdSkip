@@ -181,6 +181,43 @@
                 tools:text="@sample/episodes.json/data/title" />
 
             <LinearLayout
+                android:id="@+id/adSkipStatusRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/adSkipStatusIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:importantForAccessibility="yes" />
+
+                <TextView
+                    android:id="@+id/adSkipStatusText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:importantForAccessibility="no"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    style="@style/AntennaPod.TextView.FeedListItemSecondaryTitle" />
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/adSkipStageProgress"
+                    android:layout_width="0dp"
+                    android:layout_height="4dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:importantForAccessibility="no"
+                    android:visibility="gone"
+                    android:max="100"
+                    app:trackStopIndicatorSize="0dp" />
+
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/progress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

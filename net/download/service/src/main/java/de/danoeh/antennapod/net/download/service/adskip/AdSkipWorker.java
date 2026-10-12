@@ -401,6 +401,7 @@ public class AdSkipWorker extends Worker {
         try {
             record.put("status", state.name());
             persist();
+            EventBus.getDefault().post(new AdSkipEvent(record.optLong("media_id", -1)));
         } catch (IOException | JSONException ignored) {
             return;
         }
