@@ -1,6 +1,8 @@
 package de.danoeh.antennapod.net.download.service.feed;
 
 import android.content.Context;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import com.google.common.util.concurrent.Futures;
@@ -9,12 +11,14 @@ import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.download.serviceinterface.DownloadServiceInterface;
 import de.danoeh.antennapod.storage.database.DBWriter;
 import de.danoeh.antennapod.storage.database.adskip.AdSkipStore;
+import de.danoeh.antennapod.storage.preferences.UserPreferences;
 import io.reactivex.rxjava3.plugins.RxJavaPlugins;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -70,6 +74,21 @@ public class DownloadServiceInterfaceImplTest {
     @Test
     public void cancellationWithoutAnalysisRecordRemovesAutomaticallyQueuedItem() {
         cancelAndVerify();
+    }
+
+    @Test
+    public void adSkipRetryDownloadsMediaMarkedDownloadedWithoutLocalFile() {
+        try (MockedStatic<UserPreferences> preferences = Mockito.mockStatic(UserPreferences.class)) {
+            preferences.when(UserPreferences::isAllowMobileEpisodeDownload).thenReturn(false);
+            when(item.getMedia()).thenReturn(media);
+            when(item.isDownloaded()).thenReturn(true);
+            when(media.localFileAvailable()).thenReturn(false);
+            new DownloadServiceInterfaceImpl().download(context, item, false);
+            ArgumentCaptor<OneTimeWorkRequest> request = ArgumentCaptor.forClass(OneTimeWorkRequest.class);
+            Mockito.verify(manager).enqueueUniqueWork(Mockito.eq(media.getDownloadUrl()),
+                    Mockito.eq(ExistingWorkPolicy.KEEP), request.capture());
+            assertTrue(request.getValue().getTags().contains("adSkipDownload"));
+        }
     }
 
     @Test

@@ -49,7 +49,7 @@ public class DownloadServiceInterfaceImpl extends DownloadServiceInterface {
     }
 
     private void requestDownload(Context context, FeedItem item, boolean allowMobileData, boolean adSkip) {
-        if (item.isDownloaded()) {
+        if (item.isDownloaded() && (!adSkip || !AdSkipStore.signature(item.getMedia()).isEmpty())) {
             return;
         }
         OneTimeWorkRequest.Builder workRequest = getRequest(context, item);
