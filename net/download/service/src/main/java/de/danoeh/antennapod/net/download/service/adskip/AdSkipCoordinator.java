@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.util.Log;
 import androidx.preference.PreferenceManager;
 import androidx.work.Constraints;
 import de.danoeh.antennapod.model.feed.FeedItem;
@@ -32,6 +33,7 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
     private static AdSkipCoordinator instance;
     private static final ExecutorService scheduler = Executors.newSingleThreadExecutor();
     private static final String WORK_NAME = "audio-ad-detect";
+    private static final String TAG = "AdSkipCoordinator";
     private final Context context;
     private final SharedPreferences preferences;
 
@@ -71,7 +73,32 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
         schedule(context, append, delaySeconds, new long[0]);
     }
 
+    public static void scheduleNow(Context context) {
+        schedule(context, true, 0, new long[0], true);
+    }
+
+    public static String workState(Context context) {
+        try {
+            List<WorkInfo> work = WorkManager.getInstance(context).getWorkInfosForUniqueWork(WORK_NAME).get();
+            if (work.isEmpty()) {
+                return "NOT_SCHEDULED";
+            }
+            return work.stream().filter(info -> !info.getState().isFinished()).findFirst()
+                    .orElse(work.get(work.size() - 1)).getState().name();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "UNKNOWN";
+        } catch (Exception e) {
+            Log.w(TAG, "Unable to read background work state", e);
+            return "UNKNOWN";
+        }
+    }
+
     private static void schedule(Context context, boolean append, long delaySeconds, long[] resume) {
+        schedule(context, append, delaySeconds, resume, false);
+    }
+
+    private static void schedule(Context context, boolean append, long delaySeconds, long[] resume, boolean replace) {
         scheduler.execute(() -> {
             try {
                 AdSkipStore store = new AdSkipStore(context);
@@ -83,8 +110,10 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
                 }
                 WorkManager manager = WorkManager.getInstance(context);
                 List<WorkInfo> existing = manager.getWorkInfosForUniqueWork(WORK_NAME).get();
-                if (existing.stream().anyMatch(info -> info.getState() == WorkInfo.State.ENQUEUED
-                        || info.getState() == WorkInfo.State.BLOCKED)) {
+                boolean pending = existing.stream().anyMatch(info -> info.getState() == WorkInfo.State.ENQUEUED
+                        || info.getState() == WorkInfo.State.BLOCKED);
+                boolean running = existing.stream().anyMatch(info -> info.getState() == WorkInfo.State.RUNNING);
+                if (!replace && pending) {
                     return;
                 }
                 Constraints constraints = new Constraints.Builder()
@@ -92,12 +121,13 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
                 OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(AdSkipWorker.class)
                         .setConstraints(constraints)
                         .setInitialDelay(Math.max(0, Math.min(60, delaySeconds)), TimeUnit.SECONDS).build();
-                manager.enqueueUniqueWork(WORK_NAME,
-                        append ? ExistingWorkPolicy.APPEND_OR_REPLACE : ExistingWorkPolicy.KEEP, work)
+                manager.enqueueUniqueWork(WORK_NAME, replace && pending && !running ? ExistingWorkPolicy.REPLACE
+                                : append ? ExistingWorkPolicy.APPEND_OR_REPLACE : ExistingWorkPolicy.KEEP, work)
                         .getResult().get();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
+                Log.w(TAG, "Unable to schedule background work", e);
                 return;
             }
         });

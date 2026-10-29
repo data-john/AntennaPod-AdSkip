@@ -1101,7 +1101,14 @@
     <string name="ad_skip_download_failed">Audio download stopped or failed. Retry to request it again.</string>
     <string name="ad_skip_corrupt_record">Saved analysis data is unreadable. Confirm the remote job has stopped before Retry starts a fresh analysis.</string>
     <string name="ad_skip_recovery">The upload may have been admitted, but its identity cannot be recovered without the original audio. Other uploads are paused.</string>
-    <string name="ad_skip_waiting">Waiting for configuration, a completed audio download, or allowed connectivity.</string>
+    <string name="ad_skip_waiting">Audio is ready. Waiting for the app to submit it to the service.</string>
+    <string name="ad_skip_waiting_job">Analysis was submitted. Waiting for the app to check the service.</string>
+    <string name="ad_skip_detail_origin">Service: %1$s</string>
+    <string name="ad_skip_detail_token_ok">Token: saved</string>
+    <string name="ad_skip_detail_token_missing">Token: not saved — enter it in playback settings</string>
+    <string name="ad_skip_detail_work_state">Background work: %1$s</string>
+    <string name="ad_skip_detail_network_ok">Network: allowed</string>
+    <string name="ad_skip_detail_network_blocked">Network: blocked — check mobile data settings</string>
     <string name="ad_skip_uploading">Uploading the downloaded audio file.</string>
     <string name="ad_skip_queued">Analysis queued on the service.</string>
     <string name="ad_skip_running">Analysis running on the service.</string>

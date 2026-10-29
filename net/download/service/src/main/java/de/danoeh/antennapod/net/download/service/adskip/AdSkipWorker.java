@@ -2,6 +2,7 @@ package de.danoeh.antennapod.net.download.service.adskip;
 
 import android.content.Context;
 import android.media.MediaMetadataRetriever;
+import android.util.Log;
 import de.danoeh.antennapod.model.MediaMetadataRetrieverCompat;
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
@@ -29,6 +30,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 public class AdSkipWorker extends Worker {
+    private static final String TAG = "AdSkipWorker";
     private volatile AudioAdDetectClient client;
     private static volatile AudioAdDetectClient uploading;
     private final AdSkipStore store;
@@ -63,8 +65,10 @@ public class AdSkipWorker extends Worker {
                 delay = advance();
             }
         } catch (GeneralSecurityException e) {
+            Log.w(TAG, "Credentials error", e);
             update(AdSkipState.CREDENTIALS);
         } catch (AudioAdDetectClient.ApiException e) {
+            Log.w(TAG, "API error " + e.code, e);
             if (e.code == 401 || e.code == 403) {
                 update(AdSkipState.CREDENTIALS);
             } else if (e.code == 413 || e.code == 422) {
@@ -77,8 +81,10 @@ public class AdSkipWorker extends Worker {
                 update(AdSkipState.INVALID);
             }
         } catch (JSONException | RuntimeException e) {
+            Log.w(TAG, "Record/runtime error", e);
             update(AdSkipState.INVALID);
         } catch (IOException e) {
+            Log.w(TAG, "Network error", e);
             delay = unavailable(0);
         } finally {
             if (record != null) {
@@ -207,6 +213,8 @@ public class AdSkipWorker extends Worker {
 
     private long advance() throws IOException, JSONException, GeneralSecurityException {
         Context context = getApplicationContext();
+        Log.d(TAG, "advance: status=" + record.optString("status") + " job=" + record.optString("job_id", "(none)")
+                + " retry=" + record.optBoolean("retry_pending") + " cancel=" + record.optBoolean("cancel_pending"));
         if (!record.has("job_id") && !record.optBoolean("admission_uncertain") && !record.has("sha256")) {
             record.put("origin", AdSkipPreferences.origin(context))
                     .put("configuration", AdSkipPreferences.generation(context));
@@ -217,6 +225,8 @@ public class AdSkipWorker extends Worker {
         }
         if (!record.getString("origin").equals(AdSkipPreferences.origin(context))
                 || !record.getString("configuration").equals(AdSkipPreferences.generation(context))) {
+            Log.w(TAG, "advance: configuration mismatch, origin match="
+                    + record.getString("origin").equals(AdSkipPreferences.origin(context)));
             store.consumeRequest(record, "retry_pending");
             update(AdSkipState.CONFIGURATION);
             return 0;
@@ -241,6 +251,7 @@ public class AdSkipWorker extends Worker {
             return 0;
         }
         if (!record.has("job_id") && !AdSkipDownloads.allowed(context)) {
+            Log.i(TAG, "advance: network not allowed, deferring");
             update(AdSkipState.WAITING_NETWORK);
             return 60;
         }
@@ -284,6 +295,7 @@ public class AdSkipWorker extends Worker {
             }
             String hash = AdSkipStore.sha256(file);
             if (!current()) {
+                Log.w(TAG, "advance: media signature changed after hashing, deferring");
                 return 0;
             }
             if (record.has("sha256") && !hash.equals(record.getString("sha256"))) {
@@ -295,6 +307,7 @@ public class AdSkipWorker extends Worker {
             if (isStopped() || (!record.optBoolean("admission_uncertain")
                     && (!AdSkipPreferences.isEnabled(context) || media.getItem() == null
                     || !DBReader.getQueueIDList().contains(media.getItem().getId())))) {
+                Log.i(TAG, "advance: stopped or no longer queued/enabled, skipping upload");
                 return 0;
             }
             record.put("admission_uncertain", true);
@@ -302,9 +315,11 @@ public class AdSkipWorker extends Worker {
             uploading = client;
             try {
                 if (!AdSkipDownloads.allowed(context)) {
+                    Log.i(TAG, "advance: network disallowed at upload time, deferring");
                     update(AdSkipState.WAITING_NETWORK);
                     return 60;
                 }
+                Log.i(TAG, "advance: uploading " + file.length() + " bytes to " + record.optString("origin"));
                 accept(client.upload(file, hash, record.getString("submission_key")));
             } finally {
                 uploading = null;

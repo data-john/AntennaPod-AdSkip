@@ -6,8 +6,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.model.adskip.AdSkipState;
 import de.danoeh.antennapod.model.feed.FeedMedia;
+import de.danoeh.antennapod.net.common.NetworkUtils;
 import de.danoeh.antennapod.net.download.service.adskip.AdSkipCoordinator;
 import de.danoeh.antennapod.storage.database.adskip.AdSkipStore;
+import de.danoeh.antennapod.storage.preferences.AdSkipPreferences;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -21,12 +23,19 @@ public final class AdSkipStatusDialog {
         AdSkipStore store = new AdSkipStore(context);
         Single.fromCallable(() -> {
             JSONObject record = store.read(media.getId());
-            return record == null ? new JSONObject().put("status", "WAITING") : record;
+            if (record == null) {
+                record = new JSONObject().put("status", "WAITING");
+            }
+            return record.put("background_work_state", AdSkipCoordinator.workState(context));
         }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(record -> {
             int message = record.optBoolean("corrupt_record") ? R.string.ad_skip_corrupt_record
-                    : message(record.optString("status"));
+                    : message(record);
             String stage = record.optString("stage", "");
             String text = context.getString(message);
+            String detail = detail(context, record);
+            if (detail != null) {
+                text = text + "\n\n" + detail;
+            }
             if (!stage.trim().isEmpty() && !"null".equals(stage) && stage.matches("[a-zA-Z0-9_ -]{1,80}")) {
                 text = context.getString(R.string.ad_skip_status_stage, text, stage);
             }
@@ -48,19 +57,44 @@ public final class AdSkipStatusDialog {
             store.request(media.getId(), cancel);
             return true;
         }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(ignored -> {
-            AdSkipCoordinator.schedule(context, true, 0);
+            AdSkipCoordinator.scheduleNow(context);
             Toast.makeText(context, R.string.ad_skip_request_saved, Toast.LENGTH_SHORT).show();
         }, error -> Toast.makeText(context, R.string.ad_skip_invalid, Toast.LENGTH_LONG).show());
     }
 
-    private static int message(String status) {
+    private static String detail(Context context, JSONObject record) {
+        String status = record.optString("status");
+        if (!"WAITING".equals(status) && !"WAITING_NETWORK".equals(status)) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        String origin = AdSkipPreferences.origin(context);
+        sb.append(context.getString(R.string.ad_skip_detail_origin, origin));
+        boolean tokenOk = false;
         try {
-            return switch (AdSkipState.valueOf(status)) {
+            AdSkipPreferences.token(context);
+            tokenOk = true;
+        } catch (Exception ignored) {
+        }
+        sb.append("\n").append(context.getString(tokenOk
+                ? R.string.ad_skip_detail_token_ok : R.string.ad_skip_detail_token_missing));
+        sb.append("\n").append(context.getString(R.string.ad_skip_detail_work_state,
+                record.optString("background_work_state", "UNKNOWN")));
+        boolean networkAllowed = NetworkUtils.isEpisodeDownloadAllowed()
+                && (AdSkipPreferences.mobileData(context) || !NetworkUtils.isNetworkRestricted());
+        sb.append("\n").append(context.getString(networkAllowed
+                ? R.string.ad_skip_detail_network_ok : R.string.ad_skip_detail_network_blocked));
+        return sb.toString();
+    }
+
+    private static int message(JSONObject record) {
+        try {
+            return switch (AdSkipState.valueOf(record.optString("status"))) {
                 case WAITING_DOWNLOAD -> R.string.ad_skip_waiting_download;
                 case WAITING_NETWORK -> R.string.ad_skip_waiting_network;
                 case DOWNLOAD_FAILED -> R.string.ad_skip_download_failed;
                 case RECOVERY -> R.string.ad_skip_recovery;
-                case WAITING -> R.string.ad_skip_waiting;
+                case WAITING -> record.has("job_id") ? R.string.ad_skip_waiting_job : R.string.ad_skip_waiting;
                 case UPLOADING -> R.string.ad_skip_uploading;
                 case QUEUED -> R.string.ad_skip_queued;
                 case RUNNING -> R.string.ad_skip_running;
