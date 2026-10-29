@@ -149,7 +149,8 @@ public class AdSkipWorker extends Worker {
                 return true;
             }
             if ((saved.optBoolean("cancel_pending") && !terminal(saved.optString("status")))
-                    || saved.optBoolean("retry_pending")) {
+                    || saved.optBoolean("retry_pending")
+                    && (saved.has("job_id") || saved.optBoolean("admission_uncertain"))) {
                 media = candidate;
                 record = saved;
                 return true;
@@ -195,13 +196,14 @@ public class AdSkipWorker extends Worker {
             if (saved.optString("signature").isEmpty() && !saved.has("job_id")
                     && !saved.optBoolean("admission_uncertain")) {
                 saved.put("signature", AdSkipStore.signature(candidate));
-                if (!terminal(saved.optString("status"))) {
+                if (!terminal(saved.optString("status")) || saved.optBoolean("retry_pending")) {
                     saved.put("status", "WAITING");
                 }
                 saved.put("download_requested", false).put("download_suppressed", false);
                 store.save(saved, saved.getString("generation"));
             }
-            if (saved.has("result") || terminal(saved.optString("status"))) {
+            if (saved.has("result") || terminal(saved.optString("status"))
+                    && !saved.optBoolean("retry_pending")) {
                 continue;
             }
             media = candidate;
@@ -296,8 +298,11 @@ public class AdSkipWorker extends Worker {
             String hash = AdSkipStore.sha256(file);
             if (!current()) {
                 Log.w(TAG, "advance: media signature changed after hashing, deferring");
+                record.put("deferred_reason", "media_changed_during_hash");
+                update(AdSkipState.WAITING);
                 return 0;
             }
+            record.remove("deferred_reason");
             if (record.has("sha256") && !hash.equals(record.getString("sha256"))) {
                 record.put("local_invalid", true);
                 update(AdSkipState.RECOVERY);

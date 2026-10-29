@@ -68,6 +68,9 @@ public final class AdSkipStatusDialog {
             return null;
         }
         StringBuilder sb = new StringBuilder();
+        if ("media_changed_during_hash".equals(record.optString("deferred_reason"))) {
+            sb.append(context.getString(R.string.ad_skip_detail_media_changed)).append("\n");
+        }
         String origin = AdSkipPreferences.origin(context);
         sb.append(context.getString(R.string.ad_skip_detail_origin, origin));
         boolean tokenOk = false;
