@@ -49,9 +49,10 @@ public class AdSkipWorker extends Worker {
         long delay = 0;
         try {
             long[] resume = getInputData().getLongArray("resume_downloads");
+            long priorityMediaId = getInputData().getLong("priority_media_id", 0);
             downloadsPending = AdSkipDownloads.reconcile(getApplicationContext(), store, DBReader.getQueue(),
                     resume == null ? new long[0] : resume);
-            if (!select()) {
+            if (!select(priorityMediaId)) {
                 downloadsPending |= AdSkipDownloads.reconcile(getApplicationContext(), store, DBReader.getQueue(),
                         new long[0]);
                 if (downloadsPending && !isStopped()) {
@@ -97,8 +98,11 @@ public class AdSkipWorker extends Worker {
         return Result.success();
     }
 
-    private boolean select() throws IOException, JSONException {
+    private boolean select(long priorityMediaId) throws IOException, JSONException {
         List<FeedItem> queue = DBReader.getQueue();
+        if (priorityMediaId > 0) {
+            return selectPriority(priorityMediaId, queue);
+        }
         List<Long> queued = new ArrayList<>();
         for (FeedItem item : queue) {
             if (item.getMedia() != null) {
@@ -211,6 +215,46 @@ public class AdSkipWorker extends Worker {
             return true;
         }
         return false;
+    }
+
+    private boolean selectPriority(long mediaId, List<FeedItem> queue) throws IOException, JSONException {
+        FeedMedia candidate = DBReader.getFeedMedia(mediaId);
+        JSONObject saved = candidate == null ? store.read(mediaId) : store.readForMedia(candidate,
+                AdSkipPreferences.origin(getApplicationContext()),
+                AdSkipPreferences.generation(getApplicationContext()));
+        if (saved == null) {
+            return false;
+        }
+        boolean queued = queue.stream().anyMatch(item -> item.getMedia() != null && item.getMedia().getId() == mediaId);
+        String reason = !AdSkipPreferences.isEnabled(getApplicationContext()) ? "analysis_disabled"
+                : !queued ? "episode_not_queued"
+                : candidate == null || !candidate.localFileAvailable() || !candidate.fileExists()
+                        ? "audio_not_downloaded" : null;
+        if (reason != null) {
+            saved.put("last_dispatch_reason", reason);
+            store.save(saved, saved.getString("generation"));
+            return false;
+        }
+        if (candidate.getMediaType() != MediaType.AUDIO) {
+            saved.put("last_dispatch_reason", "unsupported_media");
+            store.save(saved, saved.getString("generation"));
+            return false;
+        }
+        String signature = AdSkipStore.signature(candidate);
+        if (signature.isEmpty()) {
+            saved.put("last_dispatch_reason", "audio_not_downloaded");
+            store.save(saved, saved.getString("generation"));
+            return false;
+        }
+        if (!saved.has("job_id") && !saved.optBoolean("admission_uncertain")) {
+            saved.put("signature", signature).put("status", "WAITING");
+        }
+        saved.remove("last_dispatch_reason");
+        saved.put("last_dispatch_reason", "prioritized");
+        store.save(saved, saved.getString("generation"));
+        media = candidate;
+        record = saved;
+        return true;
     }
 
     private long advance() throws IOException, JSONException, GeneralSecurityException {

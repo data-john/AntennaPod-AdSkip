@@ -9,6 +9,7 @@ import android.net.NetworkRequest;
 import android.util.Log;
 import androidx.preference.PreferenceManager;
 import androidx.work.Constraints;
+import androidx.work.Data;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +78,10 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
         schedule(context, true, 0, new long[0], true);
     }
 
+    public static void scheduleNow(Context context, long priorityMediaId) {
+        schedule(context, true, 0, new long[0], true, priorityMediaId);
+    }
+
     public static String workState(Context context) {
         try {
             List<WorkInfo> work = WorkManager.getInstance(context).getWorkInfosForUniqueWork(WORK_NAME).get();
@@ -99,6 +104,11 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
     }
 
     private static void schedule(Context context, boolean append, long delaySeconds, long[] resume, boolean replace) {
+        schedule(context, append, delaySeconds, resume, replace, 0);
+    }
+
+    private static void schedule(Context context, boolean append, long delaySeconds, long[] resume, boolean replace,
+            long priorityMediaId) {
         scheduler.execute(() -> {
             try {
                 AdSkipStore store = new AdSkipStore(context);
@@ -119,9 +129,11 @@ public final class AdSkipCoordinator implements SharedPreferences.OnSharedPrefer
                 Constraints constraints = new Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED).build();
                 OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(AdSkipWorker.class)
+                        .setInputData(new Data.Builder().putLong("priority_media_id", priorityMediaId).build())
                         .setConstraints(constraints)
                         .setInitialDelay(Math.max(0, Math.min(60, delaySeconds)), TimeUnit.SECONDS).build();
-                manager.enqueueUniqueWork(WORK_NAME, replace && pending && !running ? ExistingWorkPolicy.REPLACE
+                manager.enqueueUniqueWork(WORK_NAME, (replace && priorityMediaId > 0)
+                                || (replace && pending && !running) ? ExistingWorkPolicy.REPLACE
                                 : append ? ExistingWorkPolicy.APPEND_OR_REPLACE : ExistingWorkPolicy.KEEP, work)
                         .getResult().get();
             } catch (InterruptedException e) {

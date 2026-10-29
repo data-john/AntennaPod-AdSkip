@@ -1108,6 +1108,11 @@
     <string name="ad_skip_detail_token_missing">Token: not saved — enter it in playback settings</string>
     <string name="ad_skip_detail_work_state">Background work: %1$s</string>
     <string name="ad_skip_detail_media_changed">The audio file changed while being checked. Waiting for a stable download.</string>
+    <string name="ad_skip_detail_prioritized">Retry queued this episode ahead of other analyses.</string>
+    <string name="ad_skip_detail_disabled">Analysis is disabled. Enable it in playback settings before retrying.</string>
+    <string name="ad_skip_detail_not_queued">This episode is no longer in the queue. Add it to the queue, then retry.</string>
+    <string name="ad_skip_detail_audio_missing">The episode audio is not downloaded yet. Download it, then retry.</string>
+    <string name="ad_skip_detail_unsupported_media">This episode is not an audio file and cannot be analyzed.</string>
     <string name="ad_skip_detail_network_ok">Network: allowed</string>
     <string name="ad_skip_detail_network_blocked">Network: blocked — check mobile data settings</string>
     <string name="ad_skip_uploading">Uploading the downloaded audio file.</string>

@@ -57,17 +57,25 @@ public final class AdSkipStatusDialog {
             store.request(media.getId(), cancel);
             return true;
         }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(ignored -> {
-            AdSkipCoordinator.scheduleNow(context);
+            AdSkipCoordinator.scheduleNow(context, media.getId());
             Toast.makeText(context, R.string.ad_skip_request_saved, Toast.LENGTH_SHORT).show();
         }, error -> Toast.makeText(context, R.string.ad_skip_invalid, Toast.LENGTH_LONG).show());
     }
 
     private static String detail(Context context, JSONObject record) {
         String status = record.optString("status");
-        if (!"WAITING".equals(status) && !"WAITING_NETWORK".equals(status)) {
-            return null;
-        }
         StringBuilder sb = new StringBuilder();
+        switch (record.optString("last_dispatch_reason")) {
+            case "prioritized" -> sb.append(context.getString(R.string.ad_skip_detail_prioritized)).append("\n");
+            case "analysis_disabled" -> sb.append(context.getString(R.string.ad_skip_detail_disabled)).append("\n");
+            case "episode_not_queued" -> sb.append(context.getString(R.string.ad_skip_detail_not_queued)).append("\n");
+            case "audio_not_downloaded" -> sb.append(context.getString(R.string.ad_skip_detail_audio_missing)).append("\n");
+            case "unsupported_media" -> sb.append(context.getString(R.string.ad_skip_detail_unsupported_media)).append("\n");
+            default -> { }
+        }
+        if (!"WAITING".equals(status) && !"WAITING_NETWORK".equals(status)) {
+            return sb.length() == 0 ? null : sb.toString().trim();
+        }
         if ("media_changed_during_hash".equals(record.optString("deferred_reason"))) {
             sb.append(context.getString(R.string.ad_skip_detail_media_changed)).append("\n");
         }
